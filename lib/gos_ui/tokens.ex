@@ -924,6 +924,78 @@ defmodule GosUi.Tokens do
           ascii: nil,
           nerd: "f0f3",
           nerd_name: "nf-fa-bell"
+        },
+        %{
+          id: "m-chat",
+          group: :nav,
+          unicode: nil,
+          ascii: "chat",
+          nerd: "f086",
+          nerd_name: "nf-fa-comments"
+        },
+        %{
+          id: "m-event",
+          group: :nav,
+          unicode: nil,
+          ascii: "ev",
+          nerd: "f0e7",
+          nerd_name: "nf-fa-bolt"
+        },
+        %{
+          id: "m-system",
+          group: :nav,
+          unicode: nil,
+          ascii: "sys",
+          nerd: "f233",
+          nerd_name: "nf-fa-server"
+        },
+        %{
+          id: "m-tool",
+          group: :object,
+          unicode: nil,
+          ascii: "tool",
+          nerd: "f0ad",
+          nerd_name: "nf-fa-wrench"
+        },
+        %{
+          id: "m-hub",
+          group: :nav,
+          unicode: "⇄",
+          ascii: "<->",
+          nerd: "f0ec",
+          nerd_name: "nf-fa-exchange"
+        },
+        %{
+          id: "m-agent",
+          group: :object,
+          unicode: nil,
+          ascii: "agt",
+          nerd: "f2db",
+          nerd_name: "nf-fa-microchip"
+        },
+        %{
+          id: "m-run",
+          group: :action,
+          unicode: "▶",
+          ascii: ">",
+          nerd: "f04b",
+          nerd_name: "nf-fa-play"
+        },
+        %{
+          id: "m-send",
+          group: :action,
+          unicode: "➤",
+          ascii: "->",
+          nerd: "f1d8",
+          nerd_name: "nf-fa-paper_plane"
+        },
+        %{
+          id: "m-external",
+          group: :action,
+          unicode: "↗",
+          ascii: "^",
+          nerd: "f08e",
+          nerd_name: "nf-fa-external_link"
         }
       ]
     }

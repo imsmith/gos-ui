@@ -51,6 +51,10 @@ defmodule GosUiTest do
     html = rendered_to_string(~H|<.sprite />|)
     assert html =~ ~s(<svg style="display:none")
     assert html =~ ~s(id="m-unknown")
+
+    for id <- ~w(m-chat m-event m-system m-tool m-hub m-agent m-run m-send m-external) do
+      assert html =~ ~s(<symbol id="#{id}"), "sprite lacks #{id}"
+    end
   end
 
   test "livebook helpers hand out data color as data" do
