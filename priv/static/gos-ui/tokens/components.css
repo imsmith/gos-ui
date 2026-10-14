@@ -92,7 +92,7 @@
   display:inline-flex; align-items:center; gap:var(--space-half);
   font-family:var(--font-mono); font-size:var(--text-caption); font-weight:var(--weight-regular);
   text-transform:uppercase; letter-spacing:var(--tracking-label); line-height:1.4;
-  padding:2px var(--space-1); border-radius:var(--radius-sm);
+  padding:2px var(--space-1); border-radius:var(--radius-sm); white-space:nowrap;
   border:var(--border-width) solid var(--border); color:var(--muted); background:transparent;
 }
 .ds-tag--accent{ color:var(--accent); border-color:color-mix(in srgb, var(--accent) 50%, transparent); background:var(--accent-tint); }
