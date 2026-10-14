@@ -336,4 +336,78 @@ defmodule GosUiTest do
     assert html =~ ~s(id="m-critical")
     refute html =~ "@font-face"
   end
+
+  test "app shell slots" do
+    assigns = %{}
+
+    html =
+      rendered_to_string(~H"""
+      <.app_shell nav_width="220px">
+        <:brand>GRID·OPS</:brand>
+        <:summary><.status_badge step={:low} label="61 OK" /></:summary>
+        <:meta><.freshness state={:live} at="02:14:31Z" /></:meta>
+        <:nav>nav</:nav>
+        main
+      </.app_shell>
+      """)
+
+    assert html =~ "ds-shell__brand"
+    assert html =~ "--_nav:220px"
+    assert html =~ ~s(<nav class="ds-shell__nav">)
+    assert html =~ "ds-fresh--live"
+    bare = rendered_to_string(~H|<.app_shell>main</.app_shell>|)
+    assert bare =~ "ds-shell--no-nav"
+  end
+
+  test "stat tile delta and step" do
+    assigns = %{}
+
+    html =
+      rendered_to_string(
+        ~H|<.stat_tile label="CPU" value={97} unit="%" delta={4} delta_unit="pt" step={:critical}><.status_badge step={:critical} variant={:plain} /></.stat_tile>|
+      )
+
+    assert html =~ "m-warm"
+    assert html =~ "+4pt"
+    assert html =~ "--_c:var(--status-critical)"
+    down = rendered_to_string(~H|<.stat_tile label="Lag" value={12} delta={-3.5} />|)
+    assert down =~ "m-cool"
+    assert down =~ "−3.5"
+  end
+
+  test "key-value list" do
+    assigns = %{}
+
+    html =
+      rendered_to_string(
+        ~H|<.key_value columns={2} density={:dense}><:item key="Node">node-13</:item><:item key="CPU" num>97%</:item></.key_value>|
+      )
+
+    assert html =~ "ds-kv--2col"
+    assert html =~ "ds-kv--dense"
+    assert html =~ ~s(<dd class="ds-kv__v ds-kv__v--num">97%</dd>)
+  end
+
+  test "log view lines and hook" do
+    assigns = %{
+      lines: [
+        %{id: 1, ts: "02:14:31Z", severity: :critical, msg: "Uplink down."},
+        %{ts: "02:14:02Z", msg: "Rebooted."}
+      ]
+    }
+
+    html = rendered_to_string(~H|<.log_view id="log" lines={@lines} height="16rem" />|)
+    assert html =~ ~s(phx-hook="GosUiLog")
+    assert html =~ "ds-log__line--critical"
+    assert html =~ ~s(id="log-1")
+    assert html =~ ">DOWN<"
+    assert html =~ ">INFO<"
+    assert html =~ "--_h:16rem"
+  end
+
+  test "freshness states" do
+    assigns = %{}
+    assert rendered_to_string(~H|<.freshness state={:stale} at="01:58Z" />|) =~ "ds-fresh--stale"
+    assert rendered_to_string(~H|<.freshness state={:offline} />|) =~ ">OFFLINE<"
+  end
 end

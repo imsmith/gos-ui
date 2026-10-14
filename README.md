@@ -18,7 +18,8 @@ side.
   `button`, `card`, `tag`, `table`, `state_panel`/`skeleton`, `modal` (with
   `show_modal`/`hide_modal` JS commands), `diverging_meter`, `sequential_meter`,
   `sparkline`, `heatmap`, `input`, `select`, `checkbox`, `radio`, `toggle`,
-  `tabs`, `breadcrumb`, `pagination`, `menu`, `tooltip`, `theme_switch`. Class
+  `tabs`, `breadcrumb`, `pagination`, `menu`, `tooltip`, `theme_switch`, and the
+  v2 set `app_shell`, `stat_tile`, `key_value`, `log_view`, `freshness`. Class
   names mirror the reference React components, so the one shared
   `components.css` carries every rule. Interactive pieces take a `phx-click`
   event name and send `phx-value-*`; state (`active`, `checked`, `value`,
@@ -65,7 +66,8 @@ Theme and mode are attributes on an ancestor, from `GosUi.theme_attrs/2`:
 default). The status treatment rule is enforced by the stylesheet: every badge
 variant renders as fill on light surfaces.
 
-Register the client hooks once; the toast auto-dismiss timer lives there:
+Register the client hooks once; the toast auto-dismiss timer and the log
+view's tail-following live there:
 
 ```javascript
 import { GosUiHooks } from "../../deps/gos_ui/priv/static/gos-ui/gos-ui.js";

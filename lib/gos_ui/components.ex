@@ -1162,4 +1162,196 @@ defmodule GosUi.Components do
     </form>
     """
   end
+
+  # ---------------------------------------------------------- App shell
+
+  @doc """
+  App frame: header (brand · status summary · meta · actions) over a sidebar
+  nav and a scrolling main. The shell carries no data of its own.
+
+      <.app_shell nav_width="220px">
+        <:brand><.mark name="m-settings" size={18} /> GRID·OPS</:brand>
+        <:summary><.status_badge step={:critical} label="2 DOWN" pulse /></:summary>
+        <:meta><.freshness state={:live} at="02:14:31Z" /></:meta>
+        <:nav><.menu variant={:sidebar} items={@nav} selected={@view} on_select="view" /></:nav>
+        {@inner_content}
+      </.app_shell>
+  """
+  attr(:nav_width, :string, default: nil)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+  slot(:brand)
+  slot(:summary)
+  slot(:meta)
+  slot(:actions)
+  slot(:nav)
+  slot(:inner_block, required: true)
+
+  def app_shell(assigns) do
+    ~H"""
+    <div class={["ds-shell", @nav == [] && "ds-shell--no-nav", @class]} style={@nav_width && "--_nav:#{@nav_width}"} {@rest}>
+      <header class="ds-shell__head">
+        <div :if={@brand != []} class="ds-shell__brand">{render_slot(@brand)}</div>
+        <div :if={@summary != []} class="ds-shell__summary">{render_slot(@summary)}</div>
+        <div class="ds-shell__meta">
+          {render_slot(@meta)}
+          <div :if={@actions != []} class="ds-shell__actions">{render_slot(@actions)}</div>
+        </div>
+      </header>
+      <nav :if={@nav != []} class="ds-shell__nav">{render_slot(@nav)}</nav>
+      <main class="ds-shell__main">{render_slot(@inner_block)}</main>
+    </div>
+    """
+  end
+
+  # ---------------------------------------------------------- Stat tile
+
+  @doc """
+  KPI tile: caption label, big tabular value with muted unit, optional signed
+  delta carrying a diverging mark, and a foot row (sparkline, badge). A `step`
+  colors the value as an outline on dark surfaces only.
+  """
+  attr(:label, :string, required: true)
+  attr(:value, :any, required: true)
+  attr(:unit, :string, default: nil)
+  attr(:delta, :any, default: nil)
+  attr(:delta_unit, :string, default: "")
+  attr(:step, :atom, default: nil, values: [nil | @steps])
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+  slot(:inner_block)
+
+  def stat_tile(assigns) do
+    d = assigns.delta
+
+    sign =
+      cond do
+        d == nil -> nil
+        d > 0 -> :warm
+        d < 0 -> :cool
+        true -> :neutral
+      end
+
+    assigns =
+      assign(assigns,
+        sign: sign,
+        sign_str: %{warm: "+", cool: "−", neutral: "±"}[sign],
+        sign_label: %{warm: "up", cool: "down", neutral: "unchanged"}[sign],
+        abs_delta: d && fmt(abs(d)),
+        style: assigns.step && "--_c:var(--status-#{assigns.step})"
+      )
+
+    ~H"""
+    <div class={["ds-stat", @class]} data-step={@step} style={@style} {@rest}>
+      <div class="ds-stat__label">{@label}</div>
+      <div class="ds-stat__value">
+        <span>{@value}</span>
+        <span :if={@unit} class="ds-stat__unit">{@unit}</span>
+        <span :if={@sign} class="ds-stat__delta">
+          <.mark name={"m-#{@sign}"} size={12} label={@sign_label} />{@sign_str}{@abs_delta}{@delta_unit}
+        </span>
+      </div>
+      <div :if={@inner_block != []} class="ds-stat__foot">{render_slot(@inner_block)}</div>
+    </div>
+    """
+  end
+
+  # ---------------------------------------------------------- Key-value
+
+  @doc """
+  Definition list for detail views: muted uppercase keys, text values,
+  numerics right-aligned. Use `<:item key="CPU" num>97%</:item>` slots.
+  """
+  attr(:density, :atom, default: :compact, values: [:comfortable, :compact, :dense])
+  attr(:columns, :integer, default: 1, values: [1, 2])
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+
+  slot :item, required: true do
+    attr(:key, :string, required: true)
+    attr(:num, :boolean)
+  end
+
+  def key_value(assigns) do
+    ~H"""
+    <dl class={["ds-kv", @density != :compact && "ds-kv--#{@density}", @columns == 2 && "ds-kv--2col", @class]} {@rest}>
+      <%= for it <- @item do %>
+        <dt class="ds-kv__k">{it.key}</dt>
+        <dd class={["ds-kv__v", it[:num] && "ds-kv__v--num"]}>{render_slot(it)}</dd>
+      <% end %>
+    </dl>
+    """
+  end
+
+  # ------------------------------------------------------------ Log view
+
+  @log_sev %{
+    critical: {"var(--status-critical)", "var(--on-status-critical)", "m-critical", "DOWN"},
+    high: {"var(--status-high)", "var(--on-status-high)", "m-high", "ALERT"},
+    medium: {"var(--status-medium)", "var(--on-status-medium)", "m-medium", "WARN"},
+    low: {"var(--status-low)", "var(--on-status-low)", "m-low", "OK"},
+    unknown: {"var(--status-unknown)", "var(--on-status-unknown)", "m-unknown", "UNK"},
+    info: {"var(--muted)", "var(--bg)", "m-info", "INFO"}
+  }
+
+  @doc """
+  Tail-following log. Lines are maps with `:ts`, `:severity`, `:msg` and an
+  optional `:id`. Give the view an `id` and register the `GosUiLog` hook from
+  `gos-ui.js` for follow/pause behavior; without it the well just scrolls.
+  Use a `phx-update="stream"` container inside for large logs.
+  """
+  attr(:id, :string, default: nil)
+  attr(:lines, :list, required: true)
+  attr(:height, :string, default: nil)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+
+  def log_view(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :rows,
+        Enum.map(assigns.lines, fn l ->
+          {c, on, glyph, word} = @log_sev[l[:severity] || :info] || @log_sev.info
+          Map.merge(l, %{c: c, on: on, glyph: glyph, word: word})
+        end)
+      )
+
+    ~H"""
+    <div id={@id} class={["ds-log", @class]} style={@height && "--_h:#{@height}"} role="log" aria-live="polite" phx-hook={@id && "GosUiLog"} {@rest}>
+      <div :for={l <- @rows} id={l[:id] && "#{@id}-#{l[:id]}"} class={["ds-log__line", l[:severity] == :critical && "ds-log__line--critical"]}>
+        <span class="ds-log__ts">{l.ts}</span>
+        <span class="ds-log__sev" style={"--_c:#{l.c};--_on:#{l.on}"}><.mark name={l.glyph} size={12} />{l.word}</span>
+        <span class="ds-log__msg">{l.msg}</span>
+      </div>
+      <button type="button" class="ds-log__paused" hidden>Paused ↓</button>
+    </div>
+    """
+  end
+
+  # ----------------------------------------------------------- Freshness
+
+  @doc "LIVE / PAUSED / STALE / OFFLINE word + reinforcing dot + last-update time."
+  attr(:state, :atom, default: :live, values: [:live, :paused, :stale, :offline])
+  attr(:at, :string, default: nil)
+  attr(:label, :string, default: nil)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+
+  def freshness(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :word,
+        assigns.label || assigns.state |> Atom.to_string() |> String.upcase()
+      )
+
+    ~H"""
+    <span class={["ds-fresh", "ds-fresh--#{@state}", @class]} role="status" {@rest}>
+      <span class="ds-fresh__dot" aria-hidden="true"></span>
+      <span>{@word}</span>
+      <span :if={@at} class="ds-fresh__at">· {@at}</span>
+    </span>
+    """
+  end
 end

@@ -424,3 +424,52 @@
 .ds-tip:hover .ds-tip__bubble,.ds-tip:focus-within .ds-tip__bubble{ opacity:1; visibility:visible; }
 /* Escape sets data-dismissed (cleared on mouseleave/blur); it wins over hover/focus. */
 .ds-tip[data-dismissed] .ds-tip__bubble{ opacity:0; visibility:hidden; }
+
+/* ---- components/layout/AppShell.jsx ---- */
+.ds-shell{ display:grid; grid-template-columns:var(--_nav, 200px) 1fr; grid-template-rows:52px 1fr; height:100%; min-height:0; background:var(--bg); color:var(--text); font-family:var(--font-mono); }
+.ds-shell--no-nav{ grid-template-columns:1fr; }
+.ds-shell__head{ grid-column:1 / -1; display:flex; align-items:center; gap:var(--space-3); padding:0 var(--space-3); border-bottom:var(--border-width) solid var(--border); background:var(--surface); min-width:0; }
+.ds-shell__brand{ display:inline-flex; align-items:center; gap:var(--space-1); font-weight:var(--weight-bold); font-size:var(--text-h3); color:var(--accent); text-shadow:var(--glow-text-ambient); letter-spacing:0.02em; white-space:nowrap; }
+.ds-shell__summary{ display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap; }
+.ds-shell__meta{ margin-left:auto; display:flex; align-items:center; gap:var(--space-3); }
+.ds-shell__actions{ display:flex; align-items:center; gap:var(--space-2); }
+.ds-shell__nav{ border-right:var(--border-width) solid var(--border); background:var(--surface); padding:var(--space-2) var(--space-1); overflow:auto; min-height:0; }
+.ds-shell__main{ overflow:auto; padding:var(--space-3); min-width:0; min-height:0; }
+
+/* ---- components/data/StatTile.jsx ---- */
+.ds-stat{ display:flex; flex-direction:column; gap:var(--space-half); padding:var(--space-2); background:var(--surface); border:var(--border-width) solid var(--border); border-radius:var(--radius-lg); min-width:0; font-family:var(--font-mono); }
+.ds-stat__label{ font-size:var(--text-caption); font-weight:var(--weight-medium); text-transform:uppercase; letter-spacing:var(--tracking-label); color:var(--muted); }
+.ds-stat__value{ font-size:var(--text-h1); font-weight:var(--weight-bold); line-height:1; font-variant-numeric:tabular-nums; color:var(--_c, var(--text)); display:flex; align-items:baseline; gap:var(--space-half); }
+[data-mode="light"] .ds-stat__value{ color:var(--text); }
+.ds-stat__unit{ font-size:var(--text-small); font-weight:var(--weight-regular); color:var(--muted); }
+.ds-stat__delta{ display:inline-flex; align-items:center; gap:2px; font-size:var(--text-caption); color:var(--muted); font-variant-numeric:tabular-nums; }
+.ds-stat__foot{ display:flex; align-items:center; gap:var(--space-2); margin-top:var(--space-half); min-width:0; }
+
+/* ---- components/data/KeyValue.jsx ---- */
+.ds-kv{ --_pad: var(--density-compact); display:grid; grid-template-columns:max-content minmax(0,1fr); column-gap:var(--space-2); margin:0; font-family:var(--font-mono); font-size:var(--text-small); }
+.ds-kv--comfortable{ --_pad: var(--density-comfortable); }
+.ds-kv--dense{ --_pad: var(--density-dense); font-size:var(--text-caption); }
+.ds-kv--2col{ grid-template-columns:max-content minmax(0,1fr) max-content minmax(0,1fr); }
+.ds-kv__k{ color:var(--muted); font-size:var(--text-caption); font-weight:var(--weight-medium); text-transform:uppercase; letter-spacing:var(--tracking-label); padding:var(--_pad) 0; border-bottom:var(--border-width) solid color-mix(in srgb, var(--border) 50%, transparent); white-space:nowrap; }
+.ds-kv__v{ margin:0; padding:var(--_pad) 0; border-bottom:var(--border-width) solid color-mix(in srgb, var(--border) 50%, transparent); min-width:0; overflow-wrap:anywhere; display:flex; align-items:center; gap:var(--space-1); }
+.ds-kv__v--num{ justify-content:flex-end; font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+/* ---- components/data/LogView.jsx ---- */
+.ds-log{ position:relative; background:var(--bg); color:var(--text); border:var(--border-width) solid var(--border); border-radius:var(--radius-md); font-family:var(--font-mono); font-size:var(--text-caption); line-height:1.5; overflow:auto; max-height:var(--_h, 20rem); padding:var(--space-1) 0; }
+.ds-log__line{ display:grid; grid-template-columns:max-content max-content minmax(0,1fr); column-gap:var(--space-1); padding:0 var(--space-2); white-space:pre-wrap; overflow-wrap:anywhere; }
+.ds-log__line--critical{ background:color-mix(in srgb, var(--status-critical) 10%, transparent); }
+.ds-log__ts{ color:var(--muted); font-variant-numeric:tabular-nums; }
+.ds-log__sev{ display:inline-flex; align-items:center; gap:2px; color:var(--_c); text-transform:uppercase; letter-spacing:var(--tracking-label); font-weight:var(--weight-medium); min-width:5.5em; }
+[data-mode="light"] .ds-log__sev{ color:var(--_on); background:var(--_c); padding:0 4px; border-radius:var(--radius-sm); }
+.ds-log__paused{ position:sticky; bottom:var(--space-1); float:right; margin-right:var(--space-2); font-size:var(--text-micro); text-transform:uppercase; letter-spacing:var(--tracking-label); background:var(--surface); color:var(--text); border:var(--border-width) solid var(--accent); border-radius:var(--radius-sm); padding:2px var(--space-1); cursor:pointer; box-shadow:var(--glow-box-ambient); }
+.ds-log__paused[hidden]{ display:none; }
+
+/* ---- components/data/Freshness.jsx ---- */
+.ds-fresh{ display:inline-flex; align-items:center; gap:var(--space-half); font-family:var(--font-mono); font-size:var(--text-micro); font-weight:var(--weight-medium); color:var(--muted); text-transform:uppercase; letter-spacing:var(--tracking-label); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.ds-fresh__dot{ width:8px; height:8px; border-radius:50%; background:var(--muted); flex:none; }
+.ds-fresh__at{ color:var(--muted); font-weight:var(--weight-regular); }
+.ds-fresh--live .ds-fresh__dot{ background:var(--status-low); box-shadow:0 0 6px var(--status-low); animation:ds-pulse var(--pulse-period) var(--ease-standard) infinite; }
+.ds-fresh--stale{ color:var(--status-medium); } .ds-fresh--stale .ds-fresh__dot{ background:var(--status-medium); }
+.ds-fresh--offline{ color:var(--status-critical); } .ds-fresh--offline .ds-fresh__dot{ background:var(--status-critical); }
+[data-mode="light"] .ds-fresh--stale,[data-mode="light"] .ds-fresh--offline{ color:var(--text); }
+@media (prefers-reduced-motion: reduce){ .ds-fresh--live .ds-fresh__dot{ animation:none; } }
