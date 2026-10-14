@@ -58,5 +58,12 @@ body = rendered_to_string(~H"""
   </div>
 </div>
 """)
-File.write!("demo/index.html", ~s(<!doctype html><html lang="en" data-theme="tron"><head><meta charset="utf-8"><link rel="stylesheet" href="../priv/static/gos-ui/styles.css"><script type="module">import {GosUiHooks} from "../priv/static/gos-ui/gos-ui.js"; for (const el of document.querySelectorAll("[phx-hook=GosUiToast]")) GosUiHooks.GosUiToast.mounted.call({el});</script></head><body>#{body}</body></html>))
+File.write!("demo/index.html", ~s"""
+<!doctype html><html lang="en" data-theme="tron"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../priv/static/gos-ui/styles.css">
+<script type="module">
+  import { GosUiHooks } from "../priv/static/gos-ui/gos-ui.js";
+  for (const el of document.querySelectorAll("[phx-hook=GosUiToast]")) GosUiHooks.GosUiToast.mounted.call({ el });
+</script></head><body>#{body}</body></html>
+""")
 IO.puts("wrote #{byte_size(body)} bytes")
