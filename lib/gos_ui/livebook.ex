@@ -6,6 +6,7 @@ defmodule GosUi.Livebook do
   always in the **fill** treatment, since the surface is unknown.
   """
   alias GosUi.Tokens
+  require Phoenix.LiveViewTest
 
   @ramp Map.new(Tokens.status().ramp, &{&1.step, &1})
   @lexicon Map.new(Tokens.voice().status_lexicon, &{&1.step, &1})
@@ -60,7 +61,8 @@ defmodule GosUi.Livebook do
   @doc """
   Render any `GosUi.Components` function component as a self-contained HTML
   document fragment: the sprite, the stylesheet, and the markup, on the given
-  theme. Returns a `Kino.HTML` when Kino is loaded, else the string.
+  theme. Returns a `Kino.HTML` when Kino is loaded (pass `kino: false` for
+  the raw string).
 
       GosUi.Livebook.render(&GosUi.Components.heatmap/1, cells: cells, columns: 12)
       GosUi.Livebook.render(&GosUi.Components.sequential_meter/1, value: 82, warn: 70, crit: 90, label: "cpu")
@@ -75,7 +77,9 @@ defmodule GosUi.Livebook do
     html =
       ~s|<div #{attrs} style="background:var(--bg);color:var(--text);padding:var(--space-2)"><style>#{@css}</style>#{sprite}#{body}</div>|
 
-    if Code.ensure_loaded?(Kino), do: Kino.HTML.new(html), else: html
+    if Keyword.get(opts, :kino, true) and Code.ensure_loaded?(Kino),
+      do: Kino.HTML.new(html),
+      else: html
   end
 
   if Code.ensure_loaded?(Kino) do

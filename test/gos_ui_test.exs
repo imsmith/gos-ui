@@ -323,10 +323,11 @@ defmodule GosUiTest do
       GosUi.Livebook.render(
         &GosUi.Components.sequential_meter/1,
         [value: 82, warn: 70, label: "cpu"],
-        theme: :compaq
+        theme: :compaq,
+        kino: false
       )
 
-    html = if is_binary(out), do: out, else: out |> Map.get(:content) |> to_string()
+    html = out
     assert html =~ ~s(data-theme="compaq")
     assert html =~ "--status-medium"
     assert html =~ "ds-meter__fill"
