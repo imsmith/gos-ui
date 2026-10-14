@@ -1,4 +1,4 @@
-/* components.css — component styles extracted from components/**/*.jsx so the React
+/* components.css — component styles extracted from the components JSX sources so the React
  * bundle and non-React consumers (HEEx, Kino) share ONE stylesheet. Values are
  * token references only; the rules live in the manual. Imported by styles.css. */
 
