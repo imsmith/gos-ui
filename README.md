@@ -13,9 +13,13 @@ side.
   `make sync`; never edited here.
 - `GosUi.Tokens` — the token backbone as plain Elixir data (generated upstream,
   renamed on sync).
-- `GosUi.Components` — HEEx function components: `sprite`, `mark`,
-  `status_badge`, `alert`, `button`, `card`. Class names mirror the reference
-  React components, so the one shared `components.css` carries every rule.
+- `GosUi.Components` — the full suite as HEEx function components: `sprite`,
+  `mark`, `status_badge`, `alert`, `button`, `card`, `tag`, `diverging_meter`,
+  `sequential_meter`, `sparkline`, `heatmap`, `input`, `select`, `checkbox`,
+  `toggle`, `tabs`. Class names mirror the reference React components, so the
+  one shared `components.css` carries every rule. Interactive pieces (tabs,
+  heatmap cells, dismiss and remove buttons) take a `phx-click` event name and
+  send `phx-value-id`; state (`active`, `checked`, `value`) is server-driven.
 - `GosUi.Livebook` — data color as data (`scale/1`, `domain/1` for VegaLite),
   `status_text/2` for logs, and a self-contained fill-treatment badge.
 
