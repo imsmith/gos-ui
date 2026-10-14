@@ -19,7 +19,7 @@ body = rendered_to_string(~H"""
     <:col :let={n} key="id" label="Node" sortable>{n.id}</:col>
     <:col :let={n} key="step" label="Status"><.status_badge step={n.step} variant={:plain} size={13} /></:col>
     <:col :let={n} key="cpu" label="CPU %" num sortable>{n.cpu}</:col>
-    <:col :let={n} key="lat" label="Latency ms" num>{n.lat}</:col>
+    <:col :let={n} key="lat" label="Latency ms" num><.tooltip text="p95 round-trip to the collector">{n.lat}</.tooltip></:col>
   </.table>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
     <.state_panel mode={:empty} title="No alerts in sector 12"><:action><.button variant={:ghost} size={:sm} icon="m-add">Create rule</.button></:action>Nothing crossed a threshold in 24h.</.state_panel>
@@ -36,7 +36,7 @@ body = rendered_to_string(~H"""
     Deletes 14 nodes and their volumes. This cannot be undone.
     <:footer><.button variant={:ghost} phx-click={hide_modal("confirm")}>Cancel</.button><.button variant={:danger} icon="m-delete" phx-click="delete">Delete cluster</.button></:footer>
   </.modal>
-  <.toast_stack><.toast severity={:critical} title="Uplink down — sector 12." dismiss="ack">Acknowledge to clear.</.toast><.toast severity={:low} title="Rebooted node-12." dismiss="x" /></.toast_stack>
+  <.toast_stack><.toast id="t-crit" severity={:critical} title="Uplink down — sector 12." dismiss="ack">Acknowledge to clear.</.toast><.toast id="t-low" severity={:low} title="Rebooted node-12." dismiss="x" /></.toast_stack>
   <div style="display:flex;gap:12px;align-items:center">
     <.tag icon="m-lock">TLP:AMBER</.tag><.tag accent>SECTOR-12</.tag><.tag remove="rm">region=us-east</.tag>
     <.sparkline data={@series} /> <.sparkline data={@series} mode={:threshold} warn={40} crit={60} unit="ms" />
