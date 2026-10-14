@@ -163,4 +163,174 @@ defmodule GosUiTest do
     assert html =~ ~s(phx-value-id="alerts")
     assert html =~ "ds-tab__count"
   end
+
+  test "table: slots, sort state, numeric alignment, selection" do
+    assigns = %{
+      rows: [%{id: "n1", cpu: 42}, %{id: "n2", cpu: 97}],
+      sort: %{key: "cpu", dir: :descending}
+    }
+
+    html =
+      rendered_to_string(~H"""
+      <.table rows={@rows} selected="n2" on_select="pick" sort={@sort} on_sort="sort" density={:compact}>
+        <:col :let={r} key="id" label="Node" sortable>{r.id}</:col>
+        <:col :let={r} key="cpu" label="CPU %" num sortable>{r.cpu}</:col>
+      </.table>
+      """)
+
+    assert html =~ "ds-table--compact"
+    assert html =~ ~s(aria-sort="descending")
+    assert html =~ ~s(aria-sort="none")
+    assert html =~ "ds-table__td--num"
+    assert html =~ ~s(aria-selected="true")
+    assert html =~ ~s(phx-value-id="n2")
+    assert html =~ ~s(phx-value-key="cpu")
+  end
+
+  test "state panel triad and skeleton" do
+    assigns = %{}
+
+    err =
+      rendered_to_string(
+        ~H|<.state_panel mode={:error} title="Telemetry unavailable"><:action><.button>Retry</.button></:action>db-03 timed out.</.state_panel>|
+      )
+
+    assert err =~ ~s(role="alert")
+    assert err =~ "m-critical"
+    assert err =~ "ds-state__action"
+    load = rendered_to_string(~H|<.state_panel mode={:loading} title="Loading" />|)
+    assert load =~ ~s(aria-busy="true")
+
+    assert rendered_to_string(~H|<.skeleton lines={4} />|)
+           |> String.split("ds-skeleton--text")
+           |> length() == 5
+  end
+
+  test "modal markup and JS commands" do
+    assigns = %{}
+
+    html =
+      rendered_to_string(
+        ~H|<.modal id="m" destructive title="Delete cluster prod-east"><:footer><.button variant={:danger}>Delete cluster</.button></:footer>Cannot be undone.</.modal>|
+      )
+
+    assert html =~ ~s(role="alertdialog")
+    assert html =~ "ds-modal--destructive"
+    assert html =~ ~s(phx-key="escape")
+    assert html =~ "display:none"
+    assert inspect(show_modal("m")) =~ "focus_first"
+    assert inspect(hide_modal("m")) =~ "pop_focus"
+    blocking = rendered_to_string(~H|<.modal id="b" blocking title="Working">Hold.</.modal>|)
+    refute blocking =~ "ds-modal__x"
+  end
+
+  test "toasts: critical persists and is assertive; flash maps to toasts" do
+    assigns = %{flash: %{"error" => "Uplink down.", "info" => "Saved."}}
+
+    crit =
+      rendered_to_string(
+        ~H|<.toast_stack><.toast severity={:critical} title="Uplink down" dismiss="ack">Acknowledge.</.toast></.toast_stack>|
+      )
+
+    assert crit =~ ~s(data-duration="0")
+    assert crit =~ ~s(aria-live="assertive")
+    assert crit =~ "ds-toasts--bottom-right"
+    low = rendered_to_string(~H|<.toast severity={:low} title="ok" />|)
+    assert low =~ ~s(data-duration="5000")
+    flash = rendered_to_string(~H|<.flash_toasts flash={@flash} />|)
+    assert flash =~ ~s(data-severity="critical")
+    assert flash =~ "Saved."
+    assert flash =~ "lv:clear-flash"
+  end
+
+  test "breadcrumb, pagination, menu" do
+    assigns = %{
+      items: [
+        %{label: "Grid", navigate: "/"},
+        %{label: "Sector 12", href: "/s/12"},
+        %{label: "node-13"}
+      ]
+    }
+
+    crumbs = rendered_to_string(~H|<.breadcrumb items={@items} />|)
+    assert crumbs =~ ~s(aria-current="page")
+    assert crumbs =~ ~s(href="/s/12")
+    assert crumbs =~ "ds-crumb__sep"
+
+    assert GosUi.Components.page_list(4, 9) == [1, :gap, 3, 4, 5, :gap, 9]
+    assert GosUi.Components.page_list(1, 3) == [1, 2, 3]
+    pager = rendered_to_string(~H|<.pagination page={4} total={9} on_change="page" />|)
+    assert pager =~ ~s(aria-current="page")
+    assert pager =~ ~s(phx-value-page="5")
+    assert pager =~ "ds-pager__gap"
+    first = rendered_to_string(~H|<.pagination page={1} total={2} />|)
+    assert first =~ ~s(ds-pager__btn ds-pager__btn--prev" aria-label="Previous page" disabled)
+
+    assigns = %{
+      menu: [
+        %{heading: "Grid"},
+        %{id: "grid", label: "Dashboard", icon: "m-menu"},
+        %{separator: true},
+        %{id: "s", label: "Settings", navigate: "/s", submenu: true},
+        %{id: "p", label: "Policy", disabled: true}
+      ]
+    }
+
+    menu =
+      rendered_to_string(
+        ~H|<.menu items={@menu} selected="grid" on_select="go" variant={:sidebar} label="Sections" />|
+      )
+
+    assert menu =~ ~s(role="navigation")
+    assert menu =~ ~s(aria-current="true")
+    assert menu =~ ~s(href="/s")
+    assert menu =~ "ds-menu__sub"
+    assert menu =~ "ds-menu__sep"
+    assert menu =~ "ds-menu__heading"
+  end
+
+  test "radio and tooltip" do
+    assigns = %{}
+
+    assert rendered_to_string(~H|<.radio name="mode" value="live" label="Live" checked />|) =~
+             "ds-radio__dot"
+
+    tip = rendered_to_string(~H|<.tooltip text="p95 latency">Latency</.tooltip>|)
+    assert tip =~ ~s(role="tooltip")
+    assert tip =~ "aria-describedby"
+  end
+
+  test "theme attrs and switch" do
+    assert GosUi.theme_attrs() == [{"data-theme", "tron"}]
+
+    assert GosUi.theme_attrs(:compaq, :light) == [
+             {"data-theme", "compaq"},
+             {"data-mode", "light"}
+           ]
+
+    assigns = %{}
+
+    html =
+      rendered_to_string(~H|<.theme_switch theme={:matrix} mode={:light} on_change="theme" />|)
+
+    assert html =~ ~s(phx-change="theme")
+    assert html =~ ~s(<option value="matrix" selected>)
+    assert html =~ ~s(<option value="light" selected>)
+  end
+
+  test "livebook render wraps a component with the stylesheet and sprite" do
+    out =
+      GosUi.Livebook.render(
+        &GosUi.Components.sequential_meter/1,
+        [value: 82, warn: 70, label: "cpu"],
+        theme: :compaq
+      )
+
+    html = if is_binary(out), do: out, else: out |> Map.get(:content) |> to_string()
+    assert html =~ ~s(data-theme="compaq")
+    assert html =~ "--status-medium"
+    assert html =~ "ds-meter__fill"
+    assert html =~ ~s(id="m-critical")
+    refute html =~ "@font-face"
+  end
 end

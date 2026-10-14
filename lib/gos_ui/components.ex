@@ -7,6 +7,7 @@ defmodule GosUi.Components do
   use Phoenix.Component
 
   alias GosUi.Tokens
+  alias Phoenix.LiveView.JS
 
   @sprite_path Path.join([
                  :code.priv_dir(:gos_ui),
@@ -670,6 +671,485 @@ defmodule GosUi.Components do
         </button>
       </div>
     </div>
+    """
+  end
+
+  # ------------------------------------------------------------- Table
+
+  @doc """
+  Table: the workhorse. Caption header, density modes, numeric columns
+  right-aligned in tabular mono, sortable headers with a chevron, selected row
+  as accent tint + left rule. Define its empty/loading/error states with
+  `state_panel/1`.
+
+      <.table rows={@nodes} row_id={& &1.id} selected={@sel} on_select="pick" sort={@sort} on_sort="sort" density={:compact}>
+        <:col :let={n} key="id" label="Node" sortable>{n.id}</:col>
+        <:col :let={n} key="step" label="Status"><.status_badge step={n.step} variant={:plain} size={13} /></:col>
+        <:col :let={n} key="cpu" label="CPU %" num sortable>{n.cpu}</:col>
+      </.table>
+  """
+  attr(:rows, :list, required: true)
+  attr(:row_id, :any, default: nil, doc: "fun row -> id; defaults to row.id or row[:id]")
+  attr(:density, :atom, default: :comfortable, values: [:comfortable, :compact, :dense])
+  attr(:sort, :map, default: nil, doc: "%{key: \"cpu\", dir: :ascending | :descending}")
+  attr(:on_sort, :any, default: nil, doc: "phx-click event; sends phx-value-key")
+  attr(:selected, :any, default: nil, doc: "selected row id")
+  attr(:on_select, :any, default: nil, doc: "phx-click event; sends phx-value-id")
+  attr(:caption, :string, default: nil)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+
+  slot :col, required: true do
+    attr(:key, :string)
+    attr(:label, :string)
+    attr(:num, :boolean)
+    attr(:sortable, :boolean)
+  end
+
+  def table(assigns) do
+    row_id = assigns.row_id || fn r -> r[:id] end
+    assigns = assign(assigns, :id_of, row_id)
+
+    ~H"""
+    <table class={["ds-table", @density != :comfortable && "ds-table--#{@density}", @class]} {@rest}>
+      <caption :if={@caption} class="ds-table__caption">{@caption}</caption>
+      <thead>
+        <tr>
+          <th
+            :for={col <- @col}
+            scope="col"
+            class={["ds-table__th", col[:num] && "ds-table__th--num"]}
+            aria-sort={sort_state(@sort, col)}
+          >
+            <button :if={col[:sortable]} type="button" class="ds-table__sort" phx-click={@on_sort} phx-value-key={col[:key]}>
+              <span>{col[:label]}</span><.mark name="m-chevron" size={12} />
+            </button>
+            <%= if !col[:sortable], do: col[:label] %>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          :for={row <- @rows}
+          class={["ds-table__row", @on_select && "ds-table__row--interactive"]}
+          aria-selected={@on_select && to_string(@selected != nil and @selected == @id_of.(row))}
+          tabindex={@on_select && "0"}
+          phx-click={@on_select}
+          phx-value-id={@on_select && @id_of.(row)}
+        >
+          <td :for={col <- @col} class={["ds-table__td", col[:num] && "ds-table__td--num"]}>{render_slot(col, row)}</td>
+        </tr>
+      </tbody>
+    </table>
+    """
+  end
+
+  defp sort_state(%{key: k, dir: d}, %{key: k}), do: to_string(d)
+  defp sort_state(_, col), do: if(col[:sortable], do: "none")
+
+  # ------------------------------------------------ Empty / loading / error
+
+  @state_modes %{
+    empty: {"m-unknown", "status"},
+    loading: {"m-refresh", "status"},
+    error: {"m-critical", "alert"}
+  }
+
+  @doc """
+  The empty / loading / error triad every data view must define. Empty says
+  why and offers the next action; loading sets aria-busy; error is the glyph
+  on a fill chip + plain-language message + retry.
+  """
+  attr(:mode, :atom, default: :empty, values: [:empty, :loading, :error])
+  attr(:mark, :string, default: nil)
+  attr(:title, :string, default: nil)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+  slot(:inner_block)
+  slot(:action)
+
+  def state_panel(assigns) do
+    {mark, role} = @state_modes[assigns.mode]
+
+    assigns =
+      assign(assigns,
+        mark: assigns.mark || mark,
+        role: role,
+        mode_name: Atom.to_string(assigns.mode)
+      )
+
+    ~H"""
+    <div class={["ds-state", "ds-state--#{@mode_name}", @class]} role={@role} aria-busy={if @mode == :loading, do: "true"} {@rest}>
+      <span class="ds-state__mark"><.mark name={@mark} size={24} label={@mode_name} /></span>
+      <div :if={@title} class="ds-state__title">{@title}</div>
+      <div :if={@inner_block != []} class="ds-state__msg">{render_slot(@inner_block)}</div>
+      <div :if={@action != []} class="ds-state__action">{render_slot(@action)}</div>
+    </div>
+    """
+  end
+
+  @doc "Muted surface blocks standing in for loading content."
+  attr(:lines, :integer, default: 3)
+  attr(:width, :string, default: nil)
+  attr(:height, :string, default: nil)
+  attr(:class, :string, default: nil)
+
+  def skeleton(assigns) do
+    ~H"""
+    <span :if={@lines <= 1} class={["ds-skeleton", @class]} style={"width:#{@width};height:#{@height}"} aria-hidden="true"></span>
+    <div :if={@lines > 1} class={@class} aria-hidden="true">
+      <span :for={_ <- 1..@lines} class="ds-skeleton ds-skeleton--text"></span>
+    </div>
+    """
+  end
+
+  # ------------------------------------------------------------- Modal
+
+  @doc """
+  Modal / dialog. Hidden until shown with `show_modal/2`; `hide_modal/2` or the
+  close affordances hide it. Focus moves into the dialog on show and back to
+  the trigger on hide; Escape and scrim-click dismiss unless `blocking`.
+
+      <.modal id="confirm-delete" destructive title="Delete cluster prod-east" on_cancel={JS.push("cancel")}>
+        Deletes 14 nodes and their volumes. This cannot be undone.
+        <:footer>
+          <.button variant={:ghost} phx-click={hide_modal("confirm-delete")}>Cancel</.button>
+          <.button variant={:danger} icon="m-delete" phx-click="delete">Delete cluster</.button>
+        </:footer>
+      </.modal>
+      <.button variant={:danger} phx-click={show_modal("confirm-delete")}>Delete cluster prod-east</.button>
+  """
+  attr(:id, :string, required: true)
+  attr(:show, :boolean, default: false, doc: "render open (for server-driven state)")
+  attr(:title, :string, required: true)
+  attr(:size, :atom, default: :sm, values: [:sm, :md])
+  attr(:destructive, :boolean, default: false)
+  attr(:blocking, :boolean, default: false)
+  attr(:on_cancel, JS, default: %JS{})
+  attr(:class, :string, default: nil)
+  slot(:inner_block, required: true)
+  slot(:footer)
+
+  def modal(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class="ds-scrim"
+      style={!@show && "display:none"}
+      phx-mounted={@show && show_modal(@id)}
+      phx-remove={hide_modal(@id)}
+      data-cancel={JS.exec(@on_cancel, "phx-remove")}
+    >
+      <div
+        id={"#{@id}-dialog"}
+        class={["ds-modal", "ds-modal--#{@size}", @destructive && "ds-modal--destructive", @class]}
+        role={if @destructive or @blocking, do: "alertdialog", else: "dialog"}
+        aria-modal="true"
+        aria-labelledby={"#{@id}-title"}
+        tabindex="-1"
+        phx-window-keydown={!@blocking && JS.exec("data-cancel", to: "##{@id}")}
+        phx-key={!@blocking && "escape"}
+        phx-click-away={!@blocking && JS.exec("data-cancel", to: "##{@id}")}
+      >
+        <div class="ds-modal__head">
+          <h2 class="ds-modal__title" id={"#{@id}-title"}>{@title}</h2>
+          <button :if={!@blocking} type="button" class="ds-modal__x" aria-label="Close" phx-click={JS.exec("data-cancel", to: "##{@id}")}>
+            <.mark name="m-close" size={16} />
+          </button>
+        </div>
+        <div class="ds-modal__body">{render_slot(@inner_block)}</div>
+        <div :if={@footer != []} class="ds-modal__foot">{render_slot(@footer)}</div>
+      </div>
+    </div>
+    """
+  end
+
+  @doc "JS command that opens the modal with the given id and moves focus into it."
+  def show_modal(js \\ %JS{}, id) do
+    js
+    |> JS.show(to: "##{id}", display: "flex")
+    |> JS.focus_first(to: "##{id}-dialog")
+  end
+
+  @doc "JS command that closes the modal with the given id and returns focus to the trigger."
+  def hide_modal(js \\ %JS{}, id) do
+    js
+    |> JS.hide(to: "##{id}")
+    |> JS.pop_focus()
+  end
+
+  # ------------------------------------------------------------- Toast
+
+  @toast_ms %{critical: 0, high: 12_000, medium: 8_000, low: 5_000, unknown: 5_000, info: 5_000}
+
+  @doc """
+  Transient severity notification. `dismiss` is the JS/event for the close
+  button. Auto-dismiss timing is exposed as `data-duration` (ms, 0 = persist,
+  critical always persists) for a small client hook; the server never times
+  out a critical toast. Place inside `toast_stack/1`.
+  """
+  attr(:id, :string, default: nil)
+  attr(:severity, :atom, default: :info, values: @steps ++ [:info])
+  attr(:title, :string, default: nil)
+  attr(:dismiss, :any, default: nil)
+  attr(:duration, :integer, default: nil)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+  slot(:inner_block)
+
+  def toast(assigns) do
+    sev = Atom.to_string(assigns.severity)
+
+    {c, on, glyph} =
+      if assigns.severity == :info,
+        do: {"var(--accent)", "var(--on-accent)", "m-info"},
+        else:
+          {"var(--status-#{sev})", "var(--on-status-#{sev})", @lexicon[assigns.severity].glyph}
+
+    ms =
+      if assigns.severity == :critical,
+        do: 0,
+        else: assigns.duration || @toast_ms[assigns.severity]
+
+    assigns =
+      assign(assigns,
+        sev: sev,
+        style: "--_c:#{c};--_on:#{on}",
+        glyph: glyph,
+        ms: ms,
+        role: if(assigns.severity in [:critical, :high], do: "alert", else: "status"),
+        live: if(assigns.severity == :critical, do: "assertive", else: "polite")
+      )
+
+    ~H"""
+    <div id={@id} class={["ds-toast", @class]} style={@style} data-severity={@sev} data-duration={@ms} role={@role} aria-live={@live} {@rest}>
+      <span class="ds-toast__icon"><.mark name={@glyph} size={14} label={@sev} /></span>
+      <div class="ds-toast__body">
+        <div :if={@title} class="ds-toast__title">{@title}</div>
+        {render_slot(@inner_block)}
+      </div>
+      <button :if={@dismiss} type="button" class="ds-toast__x" aria-label="Dismiss" phx-click={@dismiss}>
+        <.mark name="m-close" size={14} />
+      </button>
+    </div>
+    """
+  end
+
+  @doc "The fixed corner container for toasts."
+  attr(:position, :atom, default: :bottom_right, values: [:bottom_right, :top_right])
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+  slot(:inner_block, required: true)
+
+  def toast_stack(assigns) do
+    assigns =
+      assign(assigns, :pos, assigns.position |> Atom.to_string() |> String.replace("_", "-"))
+
+    ~H"""
+    <div class={["ds-toasts", "ds-toasts--#{@pos}", @class]} {@rest}>{render_slot(@inner_block)}</div>
+    """
+  end
+
+  @doc """
+  Phoenix flash as toasts: `:info` renders as info, `:error` as critical.
+  Clicking dismiss clears the flash key server-side.
+  """
+  attr(:flash, :map, required: true)
+  attr(:id, :string, default: "flash-toasts")
+
+  def flash_toasts(assigns) do
+    ~H"""
+    <.toast_stack id={@id}>
+      <.toast
+        :for={{kind, sev} <- [info: :info, error: :critical]}
+        :if={msg = Phoenix.Flash.get(@flash, kind)}
+        id={"#{@id}-#{kind}"}
+        severity={sev}
+        dismiss={JS.push("lv:clear-flash", value: %{key: kind}) |> JS.hide(to: "##{@id}-#{kind}")}
+      >
+        {msg}
+      </.toast>
+    </.toast_stack>
+    """
+  end
+
+  # ------------------------------------------------- Breadcrumb / pager
+
+  @doc "Location trail: muted ancestor links with chevron separators; the last item is the current page."
+  attr(:items, :list, required: true, doc: "maps with :label and optional :navigate or :href")
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+
+  def breadcrumb(assigns) do
+    n = length(assigns.items)
+
+    assigns =
+      assign(assigns, :indexed, Enum.with_index(assigns.items, fn it, i -> {it, i == n - 1} end))
+
+    ~H"""
+    <nav aria-label="Breadcrumb" class={@class} {@rest}>
+      <ol class="ds-crumbs">
+        <li :for={{it, last} <- @indexed} class="ds-crumb" aria-current={last && "page"}>
+          <span :if={last or (!it[:navigate] and !it[:href])}>{it.label}</span>
+          <.link :if={!last and (it[:navigate] || it[:href])} navigate={it[:navigate]} href={it[:href]}>{it.label}</.link>
+          <span :if={!last} class="ds-crumb__sep"><.mark name="m-chevron" size={12} /></span>
+        </li>
+      </ol>
+    </nav>
+    """
+  end
+
+  @doc "Prev/next chevrons + numbered pages with elision; current page = accent tint. `on_change` gets phx-value-page."
+  attr(:page, :integer, required: true)
+  attr(:total, :integer, required: true)
+  attr(:on_change, :any, default: nil)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+
+  def pagination(assigns) do
+    assigns = assign(assigns, :pages, page_list(assigns.page, assigns.total))
+
+    ~H"""
+    <nav class={["ds-pager", @class]} aria-label="Pagination" {@rest}>
+      <button type="button" class="ds-pager__btn ds-pager__btn--prev" aria-label="Previous page" disabled={@page <= 1} phx-click={@on_change} phx-value-page={@page - 1}>
+        <.mark name="m-chevron" size={14} />
+      </button>
+      <%= for p <- @pages do %>
+        <span :if={p == :gap} class="ds-pager__gap" aria-hidden="true">…</span>
+        <button :if={p != :gap} type="button" class="ds-pager__page" aria-current={p == @page && "page"} aria-label={"Page #{p}"} phx-click={@on_change} phx-value-page={p}>
+          {p}
+        </button>
+      <% end %>
+      <button type="button" class="ds-pager__btn ds-pager__btn--next" aria-label="Next page" disabled={@page >= @total} phx-click={@on_change} phx-value-page={@page + 1}>
+        <.mark name="m-chevron" size={14} />
+      </button>
+    </nav>
+    """
+  end
+
+  @doc false
+  def page_list(page, total, around \\ 1) do
+    [1, total, page | Enum.flat_map(1..around, &[page - &1, page + &1])]
+    |> Enum.filter(&(&1 >= 1 and &1 <= total))
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.reduce([], fn
+      p, [prev | _] = acc when is_integer(prev) and p - prev > 1 -> [p, :gap | acc]
+      p, acc -> [p | acc]
+    end)
+    |> Enum.reverse()
+  end
+
+  # -------------------------------------------------------------- Menu
+
+  @doc """
+  Surface list for popovers and sidebar nav. Items: `%{id, label, icon, hint,
+  navigate | href, disabled, submenu}` or `%{separator: true}` / `%{heading: "…"}`.
+  Selected = accent tint + left rule. `on_select` gets phx-value-id.
+  """
+  attr(:items, :list, required: true)
+  attr(:selected, :any, default: nil)
+  attr(:on_select, :any, default: nil)
+  attr(:variant, :atom, default: :popover, values: [:popover, :sidebar])
+  attr(:label, :string, default: nil)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+
+  def menu(assigns) do
+    ~H"""
+    <ul class={["ds-menu", "ds-menu--#{@variant}", @class]} role={if @variant == :sidebar, do: "navigation", else: "menu"} aria-label={@label} {@rest}>
+      <%= for it <- @items do %>
+        <li :if={it[:separator]} class="ds-menu__sep" role="separator"></li>
+        <li :if={it[:heading]} class="ds-menu__heading" role="presentation">{it[:heading]}</li>
+        <li :if={!it[:separator] and !it[:heading]} role="none">
+          <.link
+            :if={it[:navigate] || it[:href]}
+            navigate={it[:navigate]}
+            href={it[:href]}
+            class="ds-menu__item"
+            aria-current={@selected == it[:id] && "page"}
+            aria-disabled={it[:disabled] && "true"}
+          >
+            <.mark :if={it[:icon]} name={it[:icon]} size={14} />
+            <span class="ds-menu__label">{it[:label]}</span>
+            <span :if={it[:hint]} class="ds-menu__hint">{it[:hint]}</span>
+            <span :if={it[:submenu]} class="ds-menu__sub"><.mark name="m-chevron" size={12} /></span>
+          </.link>
+          <button
+            :if={!(it[:navigate] || it[:href])}
+            type="button"
+            class="ds-menu__item"
+            role={if @variant == :sidebar, do: nil, else: "menuitem"}
+            aria-current={@selected == it[:id] && "true"}
+            disabled={it[:disabled]}
+            phx-click={@on_select}
+            phx-value-id={@on_select && it[:id]}
+          >
+            <.mark :if={it[:icon]} name={it[:icon]} size={14} />
+            <span class="ds-menu__label">{it[:label]}</span>
+            <span :if={it[:hint]} class="ds-menu__hint">{it[:hint]}</span>
+            <span :if={it[:submenu]} class="ds-menu__sub"><.mark name="m-chevron" size={12} /></span>
+          </button>
+        </li>
+      <% end %>
+    </ul>
+    """
+  end
+
+  # ------------------------------------------------------ Radio / tooltip
+
+  @doc "Radio: checked = accent circle with a filled dot; the dot carries the state."
+  attr(:label, :string, default: nil)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global, include: ~w(name value checked disabled form required))
+
+  def radio(assigns) do
+    ~H"""
+    <label class={["ds-radio", @class]}>
+      <input type="radio" class="ds-radio__input" {@rest} />
+      <span class="ds-radio__dot" aria-hidden="true"></span>
+      <span :if={@label}>{@label}</span>
+    </label>
+    """
+  end
+
+  @doc "Caption bubble on hover and focus with a dotted-underline cue. Never the sole carrier of essential information."
+  attr(:text, :string, required: true)
+  attr(:id, :string, default: nil)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+  slot(:inner_block, required: true)
+
+  def tooltip(assigns) do
+    assigns = assign(assigns, :tid, assigns.id || "tip-#{:erlang.phash2(assigns.text)}")
+
+    ~H"""
+    <span class={["ds-tip", @class]} tabindex="0" aria-describedby={@tid} {@rest}>
+      {render_slot(@inner_block)}
+      <span class="ds-tip__bubble" role="tooltip" id={@tid}>{@text}</span>
+    </span>
+    """
+  end
+
+  # ------------------------------------------------------- Theme switch
+
+  @doc """
+  Theme and mode selects. Emits `phx-change` with `theme` and `mode` params;
+  apply them with `GosUi.theme_attrs/2` on the root element.
+  """
+  attr(:theme, :atom, default: :tron)
+  attr(:mode, :atom, default: :dark)
+  attr(:on_change, :any, required: true, doc: "phx-change event name")
+  attr(:class, :string, default: nil)
+
+  def theme_switch(assigns) do
+    assigns = assign(assigns, :themes, GosUi.themes())
+
+    ~H"""
+    <form class={["ds-theme-switch", @class]} phx-change={@on_change} style="display:inline-flex;gap:var(--space-2);align-items:center">
+      <.select name="theme" label="Theme" options={Enum.map(@themes, &{Atom.to_string(&1), Atom.to_string(&1)})} value={@theme} />
+      <.select name="mode" label="Mode" options={["dark", "light"]} value={@mode} />
+    </form>
     """
   end
 end

@@ -25,4 +25,21 @@ defmodule GosUi do
 
   @doc "Path to the vendored static root (serve it at `/gos-ui`)."
   def static_path, do: Application.app_dir(:gos_ui, "priv/static/gos-ui")
+
+  @themes Enum.map(GosUi.Tokens.themes().themes, fn {k, _} -> k end)
+  @modes [:dark, :light]
+
+  @doc "Theme identities from the tokens: `#{inspect(@themes)}`."
+  def themes, do: @themes
+
+  @doc """
+  Attributes that select a theme and mode, for the `<html>` or `<body>` tag.
+  Dark is the default and needs no mode attribute.
+
+      <html {GosUi.theme_attrs(@theme, @mode)}>
+  """
+  def theme_attrs(theme \\ :tron, mode \\ :dark) when theme in @themes and mode in @modes do
+    [{"data-theme", Atom.to_string(theme)}] ++
+      if(mode == :light, do: [{"data-mode", "light"}], else: [])
+  end
 end

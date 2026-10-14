@@ -13,15 +13,22 @@ side.
   `make sync`; never edited here.
 - `GosUi.Tokens` — the token backbone as plain Elixir data (generated upstream,
   renamed on sync).
-- `GosUi.Components` — the full suite as HEEx function components: `sprite`,
-  `mark`, `status_badge`, `alert`, `button`, `card`, `tag`, `diverging_meter`,
-  `sequential_meter`, `sparkline`, `heatmap`, `input`, `select`, `checkbox`,
-  `toggle`, `tabs`. Class names mirror the reference React components, so the
-  one shared `components.css` carries every rule. Interactive pieces (tabs,
-  heatmap cells, dismiss and remove buttons) take a `phx-click` event name and
-  send `phx-value-id`; state (`active`, `checked`, `value`) is server-driven.
+- `GosUi.Components` — the manual's full v1 spec as HEEx function components:
+  `sprite`, `mark`, `status_badge`, `alert`, `toast`/`toast_stack`/`flash_toasts`,
+  `button`, `card`, `tag`, `table`, `state_panel`/`skeleton`, `modal` (with
+  `show_modal`/`hide_modal` JS commands), `diverging_meter`, `sequential_meter`,
+  `sparkline`, `heatmap`, `input`, `select`, `checkbox`, `radio`, `toggle`,
+  `tabs`, `breadcrumb`, `pagination`, `menu`, `tooltip`, `theme_switch`. Class
+  names mirror the reference React components, so the one shared
+  `components.css` carries every rule. Interactive pieces take a `phx-click`
+  event name and send `phx-value-*`; state (`active`, `checked`, `value`,
+  `selected`, `page`) is server-driven. Modal uses `Phoenix.LiveView.JS`.
+- `GosUi.theme_attrs/2` — the `data-theme` / `data-mode` attributes for the
+  root element; `GosUi.themes/0` lists the identities from the tokens.
 - `GosUi.Livebook` — data color as data (`scale/1`, `domain/1` for VegaLite),
-  `status_text/2` for logs, and a self-contained fill-treatment badge.
+  `status_text/2` for logs, a self-contained fill-treatment badge, and
+  `render/3`, which renders any component as a self-contained Kino output
+  (stylesheet and sprite inlined, fonts fall back to system mono).
 
 ## Phoenix
 
@@ -65,6 +72,8 @@ Mix.install([{:gos_ui, github: "imsmith/gos-ui"}, :kino, :vega_lite])
 
 GosUi.Livebook.status_badge(:medium)             # Kino.HTML output
 GosUi.Livebook.status_text(:critical, ascii: true) # "[X] DOWN"
+GosUi.Livebook.render(&GosUi.Components.heatmap/1, cells: cells, columns: 12)
+GosUi.Livebook.render(&GosUi.Components.sequential_meter/1, [value: 82, warn: 70, crit: 90, label: "cpu"], theme: :matrix)
 
 VegaLite.new()
 |> VegaLite.encode_field(:color, "severity",

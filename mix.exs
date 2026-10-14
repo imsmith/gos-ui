@@ -30,6 +30,7 @@ defmodule GosUi.MixProject do
   defp deps do
     [
       {:phoenix_live_view, "~> 1.0"},
+      {:jason, "~> 1.4"},
       {:kino, "~> 0.14", optional: true}
     ]
   end

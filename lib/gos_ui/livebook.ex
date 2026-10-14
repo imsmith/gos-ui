@@ -50,6 +50,34 @@ defmodule GosUi.Livebook do
       ~s(<span aria-hidden="true">#{@marks[step].unicode}</span>#{word}</span>)
   end
 
+  # The stylesheet, inlined once per output: every token CSS file except fonts
+  # (Livebook cannot reach the font files; the stack falls back to system mono).
+  @static Path.join([:code.priv_dir(:gos_ui), "static", "gos-ui"])
+  @css_files ~w(colors typography spacing effects base components)
+  for f <- @css_files, do: @external_resource(Path.join([@static, "tokens", "#{f}.css"]))
+  @css Enum.map_join(@css_files, "\n", &File.read!(Path.join([@static, "tokens", "#{&1}.css"])))
+
+  @doc """
+  Render any `GosUi.Components` function component as a self-contained HTML
+  document fragment: the sprite, the stylesheet, and the markup, on the given
+  theme. Returns a `Kino.HTML` when Kino is loaded, else the string.
+
+      GosUi.Livebook.render(&GosUi.Components.heatmap/1, cells: cells, columns: 12)
+      GosUi.Livebook.render(&GosUi.Components.sequential_meter/1, value: 82, warn: 70, crit: 90, label: "cpu")
+  """
+  def render(component, assigns, opts \\ []) when is_function(component, 1) do
+    theme = Keyword.get(opts, :theme, :tron)
+    mode = Keyword.get(opts, :mode, :dark)
+    attrs = GosUi.theme_attrs(theme, mode) |> Enum.map_join(" ", fn {k, v} -> ~s(#{k}="#{v}") end)
+    sprite = Phoenix.LiveViewTest.render_component(&GosUi.Components.sprite/1, %{})
+    body = Phoenix.LiveViewTest.render_component(component, Map.new(assigns))
+
+    html =
+      ~s|<div #{attrs} style="background:var(--bg);color:var(--text);padding:var(--space-2)"><style>#{@css}</style>#{sprite}#{body}</div>|
+
+    if Code.ensure_loaded?(Kino), do: Kino.HTML.new(html), else: html
+  end
+
   if Code.ensure_loaded?(Kino) do
     @doc "`status_badge_html/2` as a `Kino.HTML` output."
     def status_badge(step, opts \\ []), do: Kino.HTML.new(status_badge_html(step, opts))
