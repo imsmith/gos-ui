@@ -5,8 +5,8 @@ DEST = priv/static/gos-ui
 
 .PHONY: sync check docs demo
 
-sync:                             ## vendor styles, tokens css, fonts, sprite, and the tokens module
-	rm -rf $(DEST) && mkdir -p $(DEST)/tokens $(DEST)/assets/marks
+sync:                             ## vendor styles, tokens css, fonts, sprite, and the tokens module (gos-ui.js is ours, kept)
+	rm -rf $(DEST)/tokens $(DEST)/fonts $(DEST)/assets $(DEST)/styles.css && mkdir -p $(DEST)/tokens $(DEST)/assets/marks
 	cp $(DESIGN_SYSTEM)/styles.css $(DEST)/
 	cp $(DESIGN_SYSTEM)/tokens/*.css $(DEST)/tokens/
 	cp -r $(DESIGN_SYSTEM)/fonts $(DEST)/fonts
