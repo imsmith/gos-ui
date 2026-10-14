@@ -3,7 +3,7 @@
 DESIGN_SYSTEM ?= ../design-system
 DEST = priv/static/gos-ui
 
-.PHONY: sync check
+.PHONY: sync check docs demo
 
 sync:                             ## vendor styles, tokens css, fonts, sprite, and the tokens module
 	rm -rf $(DEST) && mkdir -p $(DEST)/tokens $(DEST)/assets/marks
@@ -21,3 +21,10 @@ check:                            ## format, compile clean, test
 	mix format --check-formatted
 	mix compile --warnings-as-errors
 	mix test
+
+docs:                             ## ex_doc into doc/ (local only)
+	mix docs
+
+demo:                             ## render demo/index.html from every component and serve it
+	mix run demo/render.exs
+	@echo "http://127.0.0.1:8767/demo/" && python3 -m http.server 8767 --bind 127.0.0.1

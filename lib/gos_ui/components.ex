@@ -62,7 +62,7 @@ defmodule GosUi.Components do
 
   `solid` is the fill treatment (legal everywhere); `soft`/`plain` are outline
   treatments (dark surfaces only). The stylesheet renders every variant as fill
-  on `[data-mode="light"]`, and `critical` is always fill.
+  on `[data-mode="light"]`.
   """
   attr(:step, :atom, required: true, values: @steps)
   attr(:label, :string, default: nil, doc: "override the display word (DOWN/ALERT/WARN/OK/UNK)")
@@ -884,9 +884,10 @@ defmodule GosUi.Components do
 
   @doc """
   Transient severity notification. `dismiss` is the JS/event for the close
-  button. Auto-dismiss timing is exposed as `data-duration` (ms, 0 = persist,
-  critical always persists) for a small client hook; the server never times
-  out a critical toast. Place inside `toast_stack/1`.
+  button. Auto-dismiss is client-side: give the toast an `id` and register the
+  `GosUiToast` hook from `priv/static/gos-ui/gos-ui.js`; it honors
+  `data-duration` (ms, 0 = persist; critical is always 0). Place inside
+  `toast_stack/1`.
   """
   attr(:id, :string, default: nil)
   attr(:severity, :atom, default: :info, values: @steps ++ [:info])
@@ -922,7 +923,7 @@ defmodule GosUi.Components do
       )
 
     ~H"""
-    <div id={@id} class={["ds-toast", @class]} style={@style} data-severity={@sev} data-duration={@ms} role={@role} aria-live={@live} {@rest}>
+    <div id={@id} class={["ds-toast", @class]} style={@style} data-severity={@sev} data-duration={@ms} phx-hook={@id && "GosUiToast"} role={@role} aria-live={@live} {@rest}>
       <span class="ds-toast__icon"><.mark name={@glyph} size={14} label={@sev} /></span>
       <div class="ds-toast__body">
         <div :if={@title} class="ds-toast__title">{@title}</div>
@@ -1113,7 +1114,7 @@ defmodule GosUi.Components do
     """
   end
 
-  @doc "Caption bubble on hover and focus with a dotted-underline cue. Never the sole carrier of essential information."
+  @doc "Caption bubble on hover and focus with a dotted-underline cue; Escape dismisses until the pointer leaves or focus moves. Never the sole carrier of essential information."
   attr(:text, :string, required: true)
   attr(:id, :string, default: nil)
   attr(:class, :string, default: nil)
@@ -1124,7 +1125,16 @@ defmodule GosUi.Components do
     assigns = assign(assigns, :tid, assigns.id || "tip-#{:erlang.phash2(assigns.text)}")
 
     ~H"""
-    <span class={["ds-tip", @class]} tabindex="0" aria-describedby={@tid} {@rest}>
+    <span
+      class={["ds-tip", @class]}
+      tabindex="0"
+      aria-describedby={@tid}
+      phx-keydown={JS.set_attribute({"data-dismissed", "true"})}
+      phx-key="escape"
+      phx-blur={JS.remove_attribute("data-dismissed")}
+      onmouseleave="this.removeAttribute('data-dismissed')"
+      {@rest}
+    >
       {render_slot(@inner_block)}
       <span class="ds-tip__bubble" role="tooltip" id={@tid}>{@text}</span>
     </span>

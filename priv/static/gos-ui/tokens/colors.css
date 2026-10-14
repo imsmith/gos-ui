@@ -100,11 +100,11 @@
   --spectrum-purple:           #663399;  /* -6 */
 
   /* Status alert ramp (tokens/color/status.edn). OASIS CAP severity. Never color alone. */
-  --status-critical:           #ff2740;
+  --status-critical:           #ff6472;
   --status-high:               #ff7a00;
   --status-medium:             #ffd400;
   --status-low:                #2fd44e;
-  --status-unknown:            #8a8f99;
+  --status-unknown:            #9ca2ac;
   /* Label color on a status FILL (large/heavy text only). Fill is legal everywhere;
    * outline (step as text/border) is dark-surface only; critical is always fill. */
   --on-status-critical:        #ffffff;

@@ -5,7 +5,7 @@ defmodule GosUiTest do
   import GosUi.Components
 
   test "tokens come from the vendored module" do
-    assert GosUi.Tokens.status().treatment.always_fill == [:critical]
+    assert GosUi.Tokens.status().treatment.light_surfaces == [:fill]
     assert GosUi.Tokens.themes().themes.tron.dark.accent == "#00E5FF"
   end
 
@@ -55,7 +55,7 @@ defmodule GosUiTest do
 
   test "livebook helpers hand out data color as data" do
     assert length(GosUi.Livebook.scale(:spectrum)) == 12
-    assert GosUi.Livebook.scale(:status) |> hd() == "#ff2740"
+    assert GosUi.Livebook.scale(:status) |> hd() == "#ff6472"
     assert GosUi.Livebook.status_text(:medium) == "◆ WARN"
     assert GosUi.Livebook.status_text(:medium, ascii: true) == "[*] WARN"
     assert GosUi.Livebook.status_badge_html(:low) =~ "background:#2fd44e;color:#000000"
@@ -298,6 +298,8 @@ defmodule GosUiTest do
     tip = rendered_to_string(~H|<.tooltip text="p95 latency">Latency</.tooltip>|)
     assert tip =~ ~s(role="tooltip")
     assert tip =~ "aria-describedby"
+    assert tip =~ ~s(phx-key="escape")
+    assert tip =~ "data-dismissed"
   end
 
   test "theme attrs and switch" do

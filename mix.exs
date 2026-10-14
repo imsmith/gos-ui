@@ -11,6 +11,15 @@ defmodule GosUi.MixProject do
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      docs: [
+        main: "readme",
+        extras: ["README.md"],
+        groups_for_modules: [
+          Components: [GosUi.Components],
+          Livebook: [GosUi.Livebook],
+          Tokens: [GosUi.Tokens]
+        ]
+      ],
       description:
         "GRID·OPS design-system components for Phoenix LiveView and Livebook — " <>
           "a BEAM consumer of imsmith/design-system.",
@@ -31,7 +40,8 @@ defmodule GosUi.MixProject do
     [
       {:phoenix_live_view, "~> 1.0"},
       {:jason, "~> 1.4"},
-      {:kino, "~> 0.14", optional: true}
+      {:kino, "~> 0.14", optional: true},
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false}
     ]
   end
 end

@@ -60,10 +60,17 @@ use GosUi
 """
 ```
 
-Theme and mode are attributes on an ancestor: `data-theme="tron|matrix|compaq"`
-and `data-mode="light"` (dark is the default). The status treatment rule is
-enforced by the stylesheet: every badge variant renders as fill on light
-surfaces, and `critical` is always fill.
+Theme and mode are attributes on an ancestor, from `GosUi.theme_attrs/2`:
+`data-theme="tron|matrix|compaq"` and `data-mode="light"` (dark is the
+default). The status treatment rule is enforced by the stylesheet: every badge
+variant renders as fill on light surfaces.
+
+Register the client hooks once; the toast auto-dismiss timer lives there:
+
+```javascript
+import { GosUiHooks } from "../../deps/gos_ui/priv/static/gos-ui/gos-ui.js";
+const liveSocket = new LiveSocket("/live", Socket, { hooks: { ...GosUiHooks } });
+```
 
 ## Livebook
 
@@ -87,6 +94,8 @@ VegaLite.new()
 ```bash
 make sync DESIGN_SYSTEM=../design-system   # vendor from a local checkout; records the commit
 make check                                 # format, compile --warnings-as-errors, test
+make demo                                  # render every component to demo/index.html and serve it
+make docs                                  # ex_doc into doc/ (local)
 ```
 
 `priv/design-system.rev` holds the upstream commit the vendored files came from.

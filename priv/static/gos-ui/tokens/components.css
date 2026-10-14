@@ -80,10 +80,9 @@
   color:var(--_c); background:color-mix(in srgb, var(--_c) 12%, transparent);
 }
 .ds-badge--plain{ background:transparent; border-color:transparent; padding-left:0; padding-right:0; }
-/* fill: requested (solid), forced on light surfaces, forced for critical. Last so it wins. */
+/* fill: requested (solid) or forced on light surfaces. Last so it wins. */
 .ds-badge--solid,
-[data-mode="light"] .ds-badge,
-.ds-badge[data-step="critical"]{
+[data-mode="light"] .ds-badge{
   color:var(--_on); background:var(--_c); border-color:var(--_c);
   padding-left:var(--space-1); padding-right:var(--space-1);
 }
@@ -423,3 +422,5 @@
   opacity:0; visibility:hidden; transition:opacity var(--dur-fast) var(--ease-standard);
 }
 .ds-tip:hover .ds-tip__bubble,.ds-tip:focus-within .ds-tip__bubble{ opacity:1; visibility:visible; }
+/* Escape sets data-dismissed (cleared on mouseleave/blur); it wins over hover/focus. */
+.ds-tip[data-dismissed] .ds-tip__bubble{ opacity:0; visibility:hidden; }
