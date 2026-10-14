@@ -1199,7 +1199,7 @@ defmodule GosUi.Components do
         </div>
       </header>
       <nav :if={@nav != []} class="ds-shell__nav">{render_slot(@nav)}</nav>
-      <main class="ds-shell__main">{render_slot(@inner_block)}</main>
+      <main id="main" class="ds-shell__main">{render_slot(@inner_block)}</main>
     </div>
     """
   end
@@ -1351,6 +1351,225 @@ defmodule GosUi.Components do
       <span class="ds-fresh__dot" aria-hidden="true"></span>
       <span>{@word}</span>
       <span :if={@at} class="ds-fresh__at">· {@at}</span>
+    </span>
+    """
+  end
+
+  # ------------------------------------------------------------ Stepper
+
+  @doc """
+  Wizard spine. `steps` are maps with `:id`, `:label` and optional `:state`
+  (`:done | :current | :upcoming | :blocked`); without a state, states derive
+  from `current` by position.
+  """
+  attr(:steps, :list, required: true)
+  attr(:current, :any, default: nil)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+
+  def stepper(assigns) do
+    ci = Enum.find_index(assigns.steps, &(&1[:id] == assigns.current))
+
+    rows =
+      assigns.steps
+      |> Enum.with_index()
+      |> Enum.map(fn {st, i} ->
+        state =
+          st[:state] ||
+            cond do
+              ci == nil -> :upcoming
+              i < ci -> :done
+              i == ci -> :current
+              true -> :upcoming
+            end
+
+        Map.merge(st, %{n: i + 1, state: state})
+      end)
+
+    assigns = assign(assigns, :rows, rows)
+
+    ~H"""
+    <ol class={["ds-stepper", @class]} {@rest}>
+      <%= for st <- @rows do %>
+        <li :if={st.n > 1} class="ds-step__connector" role="presentation"></li>
+        <li class={["ds-step", "ds-step--#{st.state}"]} aria-current={st.state == :current && "step"}>
+          <span class="ds-step__disc" aria-hidden="true">
+            <.mark :if={st.state == :done} name="m-low" size={14} />
+            <.mark :if={st.state == :blocked} name="m-critical" size={14} />
+            <%= if st.state in [:current, :upcoming], do: st.n %>
+          </span>
+          <span>{st[:label]}</span>
+        </li>
+      <% end %>
+    </ol>
+    """
+  end
+
+  # ------------------------------------------------- Textarea / fieldset
+
+  @doc "The input at multi-line: same label, field, helper/error anatomy; vertical resize only."
+  attr(:label, :string, default: nil)
+  attr(:error, :string, default: nil)
+  attr(:helper, :string, default: nil)
+  attr(:id, :string, default: nil)
+  attr(:rows, :integer, default: 4)
+  attr(:value, :string, default: nil)
+  attr(:class, :string, default: nil)
+
+  attr(:rest, :global,
+    include: ~w(name placeholder disabled readonly required maxlength minlength form)
+  )
+
+  def textarea(assigns) do
+    assigns =
+      assign(assigns,
+        fid: field_id(assigns.id, assigns.label),
+        msg: assigns.error || assigns.helper
+      )
+
+    ~H"""
+    <div class={["ds-field", @error && "ds-field--error", @class]}>
+      <label :if={@label} class="ds-field__label" for={@fid}>{@label}</label>
+      <div class="ds-field__wrap">
+        <textarea id={@fid} rows={@rows} class="ds-input ds-textarea" aria-invalid={if @error, do: "true"} {@rest}>{@value}</textarea>
+      </div>
+      <div :if={@msg} class="ds-field__msg">
+        <.mark :if={@error} name="m-critical" size={12} label="Error" />
+        <span>{@msg}</span>
+      </div>
+    </div>
+    """
+  end
+
+  @doc "A group of fields under a muted uppercase legend with an optional hint."
+  attr(:legend, :string, default: nil)
+  attr(:hint, :string, default: nil)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global, include: ~w(disabled form name))
+  slot(:inner_block, required: true)
+
+  def fieldset(assigns) do
+    ~H"""
+    <fieldset class={["ds-fieldset", @class]} {@rest}>
+      <legend :if={@legend} class="ds-fieldset__legend">{@legend}</legend>
+      <p :if={@hint} class="ds-fieldset__hint">{@hint}</p>
+      {render_slot(@inner_block)}
+    </fieldset>
+    """
+  end
+
+  # ------------------------------------------------------------- Drawer
+
+  @doc """
+  Edge-anchored dialog for detail views. Same JS commands as the modal:
+  `show_modal/2` and `hide_modal/2` work on a drawer id too.
+  """
+  attr(:id, :string, required: true)
+  attr(:show, :boolean, default: false)
+  attr(:title, :string, required: true)
+  attr(:side, :atom, default: :right, values: [:right, :left])
+  attr(:width, :string, default: nil)
+  attr(:blocking, :boolean, default: false)
+  attr(:on_cancel, JS, default: %JS{})
+  attr(:class, :string, default: nil)
+  slot(:inner_block, required: true)
+  slot(:footer)
+
+  def drawer(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class={["ds-scrim", "ds-scrim--drawer", @side == :left && "ds-scrim--left"]}
+      style={!@show && "display:none"}
+      phx-mounted={@show && show_modal(@id)}
+      phx-remove={hide_modal(@id)}
+      data-cancel={JS.exec(@on_cancel, "phx-remove")}
+    >
+      <div
+        id={"#{@id}-dialog"}
+        class={["ds-drawer", @class]}
+        style={@width && "--_w:#{@width}"}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={"#{@id}-title"}
+        tabindex="-1"
+        phx-window-keydown={!@blocking && JS.exec("data-cancel", to: "##{@id}")}
+        phx-key={!@blocking && "escape"}
+        phx-click-away={!@blocking && JS.exec("data-cancel", to: "##{@id}")}
+      >
+        <div class="ds-drawer__head">
+          <h2 class="ds-drawer__title" id={"#{@id}-title"}>{@title}</h2>
+          <button :if={!@blocking} type="button" class="ds-modal__x" aria-label="Close" phx-click={JS.exec("data-cancel", to: "##{@id}")}>
+            <.mark name="m-close" size={16} />
+          </button>
+        </div>
+        <div class="ds-drawer__body">{render_slot(@inner_block)}</div>
+        <div :if={@footer != []} class="ds-drawer__foot">{render_slot(@footer)}</div>
+      </div>
+    </div>
+    """
+  end
+
+  # ----------------------------------------------------------- Timeline
+
+  @doc "Events down a rule: severity dot with glyph, muted time, title, optional body. Maps with :time, :title and optional :severity, :body, :id."
+  attr(:events, :list, required: true)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global)
+
+  def timeline(assigns) do
+    rows =
+      Enum.map(assigns.events, fn e ->
+        sev = e[:severity]
+        style = sev && "--_c:var(--status-#{sev});--_on:var(--on-status-#{sev})"
+        glyph = sev && @lexicon[sev].glyph
+
+        Map.merge(e, %{
+          style: style,
+          glyph: glyph,
+          sev_word: sev && sev |> Atom.to_string() |> String.upcase()
+        })
+      end)
+
+    assigns = assign(assigns, :rows, rows)
+
+    ~H"""
+    <ol class={["ds-timeline", @class]} {@rest}>
+      <li :for={e <- @rows} class="ds-event">
+        <span class="ds-event__dot" style={e.style} aria-hidden="true"><.mark :if={e.glyph} name={e.glyph} size={10} /></span>
+        <div class="ds-event__time">{e.time}<span :if={e.sev_word}> · {e.sev_word}</span></div>
+        <div class="ds-event__title">{e.title}</div>
+        <div :if={e[:body]} class="ds-event__body">{e[:body]}</div>
+      </li>
+    </ol>
+    """
+  end
+
+  # ------------------------------------------------------ Skip link / kbd
+
+  @doc "First focusable element on the page; hidden until focused; jumps to #main (the app shell's main)."
+  attr(:href, :string, default: "#main")
+  attr(:class, :string, default: nil)
+  slot(:inner_block)
+
+  def skip_link(assigns) do
+    ~H"""
+    <a href={@href} class={["ds-skip", @class]}>{if @inner_block == [], do: "Skip to content", else: render_slot(@inner_block)}</a>
+    """
+  end
+
+  @doc "Key-name chips joined with +. `keys` is a string or a list."
+  attr(:keys, :any, required: true)
+  attr(:class, :string, default: nil)
+
+  def kbd(assigns) do
+    assigns = assign(assigns, :list, List.wrap(assigns.keys) |> Enum.with_index())
+
+    ~H"""
+    <span class={["ds-kbd", @class]}>
+      <%= for {k, i} <- @list do %>
+        <span :if={i > 0} class="ds-kbd__plus" aria-hidden="true">+</span><kbd>{k}</kbd>
+      <% end %>
     </span>
     """
   end

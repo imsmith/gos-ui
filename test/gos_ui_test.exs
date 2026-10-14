@@ -410,4 +410,75 @@ defmodule GosUiTest do
     assert rendered_to_string(~H|<.freshness state={:stale} at="01:58Z" />|) =~ "ds-fresh--stale"
     assert rendered_to_string(~H|<.freshness state={:offline} />|) =~ ">OFFLINE<"
   end
+
+  test "stepper derives states from current" do
+    assigns = %{
+      steps: [
+        %{id: "scope", label: "Scope"},
+        %{id: "targets", label: "Targets"},
+        %{id: "review", label: "Review", state: :blocked}
+      ]
+    }
+
+    html = rendered_to_string(~H|<.stepper steps={@steps} current="targets" />|)
+    assert html =~ "ds-step--done"
+    assert html =~ ~s(aria-current="step")
+    assert html =~ "ds-step--blocked"
+    assert html =~ "m-low"
+    assert html =~ "m-critical"
+    assert html |> String.split("ds-step__connector") |> length() == 3
+  end
+
+  test "textarea and fieldset" do
+    assigns = %{}
+
+    ta =
+      rendered_to_string(~H|<.textarea label="Note" name="note" value="hi" error="Required." />|)
+
+    assert ta =~ "ds-textarea"
+    assert ta =~ ~s(id="ds-note")
+    assert ta =~ ">hi</textarea>"
+    assert ta =~ ~s(aria-invalid="true")
+
+    fs =
+      rendered_to_string(
+        ~H|<.fieldset legend="Thresholds" hint="Per sector."><.input label="Warn" /></.fieldset>|
+      )
+
+    assert fs =~ "ds-fieldset__legend"
+    assert fs =~ "ds-fieldset__hint"
+  end
+
+  test "drawer shares the modal commands" do
+    assigns = %{}
+
+    html =
+      rendered_to_string(
+        ~H|<.drawer id="d" title="node-13" side={:left} width="24rem">body<:footer>x</:footer></.drawer>|
+      )
+
+    assert html =~ "ds-scrim--drawer"
+    assert html =~ "ds-scrim--left"
+    assert html =~ "--_w:24rem"
+    assert html =~ ~s(role="dialog")
+    assert html =~ "ds-drawer__foot"
+  end
+
+  test "timeline, skip link, kbd" do
+    assigns = %{
+      events: [
+        %{time: "02:14:31Z", severity: :critical, title: "Uplink down.", body: "4 nodes."},
+        %{time: "02:13Z", title: "Rebooted."}
+      ]
+    }
+
+    tl = rendered_to_string(~H|<.timeline events={@events} />|)
+    assert tl =~ "--status-critical"
+    assert tl =~ "· CRITICAL"
+    assert tl =~ "ds-event__body"
+    assert rendered_to_string(~H|<.skip_link />|) =~ ~s(href="#main")
+    kbd = rendered_to_string(~H|<.kbd keys={["⌘", "K"]} />|)
+    assert kbd =~ "<kbd>⌘</kbd>"
+    assert kbd =~ "ds-kbd__plus"
+  end
 end

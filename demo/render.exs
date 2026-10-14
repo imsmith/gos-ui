@@ -13,12 +13,19 @@ assigns = %{
     %{id: 4, ts: "02:14:31Z", severity: :critical, msg: "Uplink down — sector 12. 4 nodes unreachable for 4m. Reroute or restore the uplink."},
     %{id: 5, ts: "02:14:40Z", severity: :low, msg: "Reroute applied. 3 of 4 nodes reachable."}
   ],
+  steps: [%{id: "scope", label: "Scope"}, %{id: "targets", label: "Targets"}, %{id: "review", label: "Review"}, %{id: "apply", label: "Apply", state: :blocked}],
+  events: [
+    %{time: "02:14:31Z", severity: :critical, title: "Uplink down — sector 12.", body: "4 nodes unreachable for 4m. Reroute or restore the uplink."},
+    %{time: "02:14:02Z", severity: :medium, title: "Latency 41ms on node-13, above 40ms threshold."},
+    %{time: "02:13:50Z", title: "Rebooted node-12. Telemetry nominal."}
+  ],
   nodes: [%{id: "node-11", step: :low, cpu: 42, lat: 18}, %{id: "node-12", step: :medium, cpu: 78, lat: 41}, %{id: "node-13", step: :critical, cpu: 97, lat: 212}],
   crumbs: [%{label: "Grid", href: "#"}, %{label: "Sector 12", href: "#"}, %{label: "node-13"}],
   menu: [%{heading: "Grid"}, %{id: "grid", label: "Dashboard", icon: "m-menu"}, %{id: "alerts", label: "Alerts", icon: "m-bell", hint: 3}, %{separator: true}, %{id: "settings", label: "Settings", icon: "m-settings", submenu: true}, %{id: "policy", label: "Policy", icon: "m-lock", disabled: true}]
 }
 body = rendered_to_string(~H"""
 <.sprite />
+<.skip_link />
 <div style="padding:24px;display:flex;flex-direction:column;gap:20px;max-width:1040px">
   <div style="height:260px;border:1px solid var(--border)">
     <.app_shell>
@@ -38,6 +45,16 @@ body = rendered_to_string(~H"""
     <.key_value columns={2}><:item key="Node">node-13</:item><:item key="Status"><.status_badge step={:critical} variant={:plain} size={13} /></:item><:item key="CPU" num>97%</:item><:item key="Region"><.tag>us-east</.tag></:item><:item key="Uptime" num>14d 02:14</:item><:item key="Kernel">6.12.107</:item></.key_value>
     <.log_view id="log" lines={@log} height="12rem" />
   </div>
+  <.stepper steps={@steps} current="targets" />
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+    <.fieldset legend="Thresholds" hint="Applied to every node in the sector.">
+      <.input label="Warn (ms)" name="warn" value="40" />
+      <.textarea label="Runbook note" name="note" rows={3} helper="What happened · why · what to do." />
+      <div style="display:flex;gap:12px;align-items:center"><.kbd keys={["⌘", "K"]} /> <.kbd keys="Esc" /></div>
+    </.fieldset>
+    <.timeline events={@events} />
+  </div>
+  <.drawer id="detail" show title="node-13"><.key_value><:item key="Status"><.status_badge step={:critical} variant={:plain} size={13} /></:item><:item key="CPU" num>97%</:item></.key_value><:footer><.button variant={:ghost} phx-click={hide_modal("detail")}>Close</.button></:footer></.drawer>
   <.breadcrumb items={@crumbs} />
   <.tabs tabs={@tabs} active="alerts" select="tab" />
   <.table rows={@nodes} selected="node-13" on_select="pick" sort={%{key: "cpu", dir: :descending}} on_sort="sort" density={:compact}>

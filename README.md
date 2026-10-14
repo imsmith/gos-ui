@@ -19,7 +19,8 @@ side.
   `show_modal`/`hide_modal` JS commands), `diverging_meter`, `sequential_meter`,
   `sparkline`, `heatmap`, `input`, `select`, `checkbox`, `radio`, `toggle`,
   `tabs`, `breadcrumb`, `pagination`, `menu`, `tooltip`, `theme_switch`, and the
-  v2 set `app_shell`, `stat_tile`, `key_value`, `log_view`, `freshness`. Class
+  v2 set `app_shell`, `stat_tile`, `key_value`, `log_view`, `freshness`,
+  `stepper`, `textarea`, `fieldset`, `drawer`, `timeline`, `skip_link`, `kbd`. Class
   names mirror the reference React components, so the one shared
   `components.css` carries every rule. Interactive pieces take a `phx-click`
   event name and send `phx-value-*`; state (`active`, `checked`, `value`,
