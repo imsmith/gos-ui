@@ -41,7 +41,8 @@ defmodule GosUiTest do
     assigns = %{}
     html = rendered_to_string(~H|<.button variant={:danger} loading>Delete sector 12</.button>|)
     assert html =~ "ds-btn--danger"
-    assert html =~ ~s(aria-busy)
+    assert html =~ ~s(data-loading="true")
+    assert html =~ ~s(aria-busy="true")
     assert html =~ "m-refresh"
   end
 

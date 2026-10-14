@@ -163,8 +163,8 @@ defmodule GosUi.Components do
       type={@type}
       class={["ds-btn", "ds-btn--#{@variant}", @size != :md && "ds-btn--#{@size}", @class]}
       disabled={@disabled || @loading}
-      aria-busy={@loading || nil}
-      data-loading={@loading || nil}
+      aria-busy={if @loading, do: "true"}
+      data-loading={if @loading, do: "true"}
       {@rest}
     >
       <span :if={@loading} class="ds-btn__spin" aria-hidden="true"><.mark name="m-refresh" size={@icon_size} /></span>
@@ -194,7 +194,7 @@ defmodule GosUi.Components do
     <section
       class={["ds-card", @density == :compact && "ds-card--compact", @density == :dense && "ds-card--dense", @interactive && "ds-card--interactive", @selected && "ds-card--selected", @class]}
       tabindex={if @interactive, do: "0"}
-      aria-current={@selected || nil}
+      aria-current={if @selected, do: "true"}
       {@rest}
     >
       <header :if={@title || @actions != []} class="ds-card__head">
