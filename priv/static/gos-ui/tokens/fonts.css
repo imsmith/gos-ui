@@ -1,0 +1,84 @@
+/* fonts.css — webfont declarations (self-hosted brand faces)
+ *
+ * The duo (tokens/typography.edn), now self-hosted from uploaded binaries:
+ *   mono  — the VOICE: "MartianMono Nerd Font" (Evil Martians Martian Mono,
+ *           Nerd-Font patched — includes icon glyphs). Files in /fonts.
+ *   prose — "Martian Grotesk" (Evil Martians), the proportional sibling. The
+ *           upload ships the full optical/width family; we wire the Standard
+ *           width at Regular/Medium/Bold for running prose.
+ *
+ * Self-hosted, so the Google Fonts CDN substitutes (Martian Mono / Space
+ * Grotesk) are no longer needed and have been removed — both were stand-ins for
+ * the real faces now present here.
+ */
+
+/* ── Mono voice — MartianMono Nerd Font ─────────────────────────────────────*/
+@font-face {
+  font-family: 'MartianMono Nerd Font';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: local('MartianMono Nerd Font'),
+       url('../fonts/MartianMonoNerdFont-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'MartianMono Nerd Font';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: local('MartianMono Nerd Font Medium'),
+       url('../fonts/MartianMonoNerdFont-Medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'MartianMono Nerd Font';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: local('MartianMono Nerd Font Bold'),
+       url('../fonts/MartianMonoNerdFont-Bold.ttf') format('truetype');
+}
+
+/* Strict single-width variant for terminal/data contexts (tokens/typography.edn
+ * :terminal). Reference as 'MartianMono Nerd Font Mono'. */
+@font-face {
+  font-family: 'MartianMono Nerd Font Mono';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: local('MartianMono Nerd Font Mono'),
+       url('../fonts/MartianMonoNerdFontMono-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'MartianMono Nerd Font Mono';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: local('MartianMono Nerd Font Mono Bold'),
+       url('../fonts/MartianMonoNerdFontMono-Bold.ttf') format('truetype');
+}
+
+/* ── Prose — Martian Grotesk (Standard width) ───────────────────────────────*/
+@font-face {
+  font-family: 'Martian Grotesk';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: local('Martian Grotesk'),
+       url('../fonts/MartianGrotesk-StdRg.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Martian Grotesk';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: local('Martian Grotesk Medium'),
+       url('../fonts/MartianGrotesk-StdMd.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Martian Grotesk';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: local('Martian Grotesk Bold'),
+       url('../fonts/MartianGrotesk-StdBd.ttf') format('truetype');
+}

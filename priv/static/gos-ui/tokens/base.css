@@ -1,0 +1,80 @@
+/* base.css — minimal element defaults derived from the tokens.
+ *
+ * Not a framework — just the foundation every surface assumes: the page
+ * background/text roles, the mono-as-voice default, prose measure, and the
+ * focus-outline contract (the focus signal is the OUTLINE; glow only reinforces).
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);          /* mono is the voice */
+  font-size: var(--text-body);
+  line-height: var(--leading-snug);
+  font-weight: var(--weight-regular);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Long-form running text only. */
+.ds-prose {
+  font-family: var(--font-prose);
+  line-height: var(--leading-normal);
+  max-width: var(--measure-prose);
+}
+
+/* Headings are mono, tight, accent-glow optional via .ds-glow. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-mono);
+  line-height: var(--leading-tight);
+  font-weight: var(--weight-bold);
+  margin: 0;
+}
+
+/* UPPERCASE label channel (terminal hierarchy). */
+.ds-label {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  font-size: var(--text-caption);
+  color: var(--muted);
+  font-weight: var(--weight-medium);
+}
+
+/* Numeric data: tabular figures, never wrapped. */
+.ds-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The focus contract. The outline is the signal; active glow reinforces on
+ * dark surfaces (and is suppressed in light mode by effects.css). */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: var(--space-half);
+  box-shadow: var(--glow-box-active);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+code, pre, kbd, samp {
+  font-family: var(--font-mono);
+}
