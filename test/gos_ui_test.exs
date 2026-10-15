@@ -51,6 +51,10 @@ defmodule GosUiTest do
     html = rendered_to_string(~H|<.sprite />|)
     assert html =~ ~s(<svg style="display:none")
     assert html =~ ~s(id="m-unknown")
+
+    for id <- ~w(m-chat m-event m-system m-tool m-hub m-agent m-run m-send m-external) do
+      assert html =~ ~s(<symbol id="#{id}"), "sprite lacks #{id}"
+    end
   end
 
   test "livebook helpers hand out data color as data" do
@@ -241,6 +245,15 @@ defmodule GosUiTest do
     assert flash =~ ~s(data-severity="critical")
     assert flash =~ "Saved."
     assert flash =~ "lv:clear-flash"
+
+    # rendering is stateless: this only pins the output shape, not LiveView change tracking.
+    assigns = %{flash: %{"error" => "first"}}
+    first = rendered_to_string(~H|<.flash_toasts flash={@flash} />|)
+    assert first =~ "first"
+    assigns = %{flash: %{"error" => "second"}}
+    second = rendered_to_string(~H|<.flash_toasts flash={@flash} />|)
+    assert second =~ "second"
+    refute second =~ "first"
   end
 
   test "breadcrumb, pagination, menu" do
@@ -318,6 +331,10 @@ defmodule GosUiTest do
     assert html =~ ~s(phx-change="theme")
     assert html =~ ~s(<option value="matrix" selected>)
     assert html =~ ~s(<option value="light" selected>)
+    assert html =~ ~s(id="ds-theme-switch")
+
+    custom = rendered_to_string(~H|<.theme_switch on_change="set" id="ts-2" />|)
+    assert custom =~ ~s(id="ts-2")
   end
 
   test "livebook render wraps a component with the stylesheet and sprite" do

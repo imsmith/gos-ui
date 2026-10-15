@@ -961,16 +961,23 @@ defmodule GosUi.Components do
   def flash_toasts(assigns) do
     ~H"""
     <.toast_stack id={@id}>
-      <.toast
-        :for={{kind, sev} <- [info: :info, error: :critical]}
-        :if={msg = Phoenix.Flash.get(@flash, kind)}
-        id={"#{@id}-#{kind}"}
-        severity={sev}
-        dismiss={JS.push("lv:clear-flash", value: %{key: kind}) |> JS.hide(to: "##{@id}-#{kind}")}
-      >
-        {msg}
-      </.toast>
+      <.flash_toast :for={{kind, sev} <- [info: :info, error: :critical]} id={"#{@id}-#{kind}"} kind={kind} severity={sev} flash={@flash} />
     </.toast_stack>
+    """
+  end
+
+  attr(:id, :string, required: true)
+  attr(:kind, :atom, required: true)
+  attr(:severity, :atom, required: true)
+  attr(:flash, :map, required: true)
+
+  defp flash_toast(assigns) do
+    assigns = assign(assigns, :msg, Phoenix.Flash.get(assigns.flash, assigns.kind))
+
+    ~H"""
+    <.toast :if={@msg} id={@id} severity={@severity} dismiss={JS.push("lv:clear-flash", value: %{key: @kind}) |> JS.hide(to: "##{@id}")}>
+      {@msg}
+    </.toast>
     """
   end
 
@@ -1150,13 +1157,15 @@ defmodule GosUi.Components do
   attr(:theme, :atom, default: :tron)
   attr(:mode, :atom, default: :dark)
   attr(:on_change, :any, required: true, doc: "phx-change event name")
+  attr(:id, :string, default: "ds-theme-switch")
+  attr(:rest, :global)
   attr(:class, :string, default: nil)
 
   def theme_switch(assigns) do
     assigns = assign(assigns, :themes, GosUi.themes())
 
     ~H"""
-    <form class={["ds-theme-switch", @class]} phx-change={@on_change} style="display:inline-flex;gap:var(--space-2);align-items:center">
+    <form id={@id} class={["ds-theme-switch", @class]} phx-change={@on_change} style="display:inline-flex;gap:var(--space-2);align-items:center" {@rest}>
       <.select name="theme" label="Theme" options={Enum.map(@themes, &{Atom.to_string(&1), Atom.to_string(&1)})} value={@theme} />
       <.select name="mode" label="Mode" options={["dark", "light"]} value={@mode} />
     </form>
