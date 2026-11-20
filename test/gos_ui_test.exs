@@ -3,6 +3,7 @@ defmodule GosUiTest do
   import Phoenix.Component
   import Phoenix.LiveViewTest, only: [rendered_to_string: 1]
   import GosUi.Components
+  alias Phoenix.LiveView.JS
 
   test "tokens come from the vendored module" do
     assert GosUi.Tokens.status().treatment.light_surfaces == [:fill]
@@ -176,7 +177,7 @@ defmodule GosUiTest do
 
     html =
       rendered_to_string(~H"""
-      <.table rows={@rows} selected="n2" on_select="pick" sort={@sort} on_sort="sort" density={:compact}>
+      <.table id="node" rows={@rows} selected="n2" on_select="pick" sort={@sort} on_sort="sort" density={:compact}>
         <:col :let={r} key="id" label="Node" sortable>{r.id}</:col>
         <:col :let={r} key="cpu" label="CPU %" num sortable>{r.cpu}</:col>
       </.table>
@@ -189,6 +190,15 @@ defmodule GosUiTest do
     assert html =~ ~s(aria-selected="true")
     assert html =~ ~s(phx-value-id="n2")
     assert html =~ ~s(phx-value-key="cpu")
+    assert html =~ ~s(id="node-n1")
+    assert html =~ ~s(id="node-n2")
+
+    bare =
+      rendered_to_string(
+        ~H|<.table rows={@rows}><:col :let={r} label="Node">{r.id}</:col></.table>|
+      )
+
+    refute bare =~ ~s(id="-n1")
   end
 
   test "state panel triad and skeleton" do
@@ -332,9 +342,27 @@ defmodule GosUiTest do
     assert html =~ ~s(<option value="matrix" selected>)
     assert html =~ ~s(<option value="light" selected>)
     assert html =~ ~s(id="ds-theme-switch")
+    assert html =~ ~s(id="ds-theme-switch-mode")
+    refute html =~ "phx-auto-recover"
 
     custom = rendered_to_string(~H|<.theme_switch on_change="set" id="ts-2" />|)
     assert custom =~ ~s(id="ts-2")
+    assert custom =~ ~s(id="ts-2-theme")
+
+    # non-push on_change: form recovery can never complete, so opt out by default
+    js = rendered_to_string(~H|<.theme_switch on_change={JS.dispatch("ds:theme")} />|)
+    assert js =~ ~s(phx-auto-recover="ignore")
+
+    pushing = rendered_to_string(~H|<.theme_switch on_change={JS.push("theme")} />|)
+    refute pushing =~ "phx-auto-recover"
+
+    explicit =
+      rendered_to_string(
+        ~H|<.theme_switch on_change={JS.dispatch("x")} phx-auto-recover="recover" />|
+      )
+
+    assert explicit =~ ~s(phx-auto-recover="recover")
+    refute explicit =~ ~s(phx-auto-recover="ignore")
   end
 
   test "livebook render wraps a component with the stylesheet and sprite" do

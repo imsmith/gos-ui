@@ -690,6 +690,7 @@ defmodule GosUi.Components do
   """
   attr(:rows, :list, required: true)
   attr(:row_id, :any, default: nil, doc: "fun row -> id; defaults to row.id or row[:id]")
+  attr(:id, :string, default: nil, doc: "table DOM id; each row gets id=\"<id>-<row_id>\"")
   attr(:density, :atom, default: :comfortable, values: [:comfortable, :compact, :dense])
   attr(:sort, :map, default: nil, doc: "%{key: \"cpu\", dir: :ascending | :descending}")
   attr(:on_sort, :any, default: nil, doc: "phx-click event; sends phx-value-key")
@@ -711,7 +712,7 @@ defmodule GosUi.Components do
     assigns = assign(assigns, :id_of, row_id)
 
     ~H"""
-    <table class={["ds-table", @density != :comfortable && "ds-table--#{@density}", @class]} {@rest}>
+    <table id={@id} class={["ds-table", @density != :comfortable && "ds-table--#{@density}", @class]} {@rest}>
       <caption :if={@caption} class="ds-table__caption">{@caption}</caption>
       <thead>
         <tr>
@@ -731,6 +732,7 @@ defmodule GosUi.Components do
       <tbody>
         <tr
           :for={row <- @rows}
+          id={@id && "#{@id}-#{@id_of.(row)}"}
           class={["ds-table__row", @on_select && "ds-table__row--interactive"]}
           aria-selected={@on_select && to_string(@selected != nil and @selected == @id_of.(row))}
           tabindex={@on_select && "0"}
@@ -1162,15 +1164,26 @@ defmodule GosUi.Components do
   attr(:class, :string, default: nil)
 
   def theme_switch(assigns) do
-    assigns = assign(assigns, :themes, GosUi.themes())
+    # A form with an id + phx-change is a recovery candidate on rejoin; with no
+    # push op the recovery callback never fires and the join hangs. Opt out
+    # unless on_change pushes, or the caller set phx-auto-recover themselves.
+    recover =
+      if pushes?(assigns.on_change) or Map.has_key?(assigns.rest, :"phx-auto-recover"),
+        do: nil,
+        else: "ignore"
+
+    assigns = assign(assigns, themes: GosUi.themes(), recover: recover)
 
     ~H"""
-    <form id={@id} class={["ds-theme-switch", @class]} phx-change={@on_change} style="display:inline-flex;gap:var(--space-2);align-items:center" {@rest}>
-      <.select name="theme" label="Theme" options={Enum.map(@themes, &{Atom.to_string(&1), Atom.to_string(&1)})} value={@theme} />
-      <.select name="mode" label="Mode" options={["dark", "light"]} value={@mode} />
+    <form id={@id} class={["ds-theme-switch", @class]} phx-change={@on_change} phx-auto-recover={@recover} style="display:inline-flex;gap:var(--space-2);align-items:center" {@rest}>
+      <.select id={"#{@id}-theme"} name="theme" label="Theme" options={Enum.map(@themes, &{Atom.to_string(&1), Atom.to_string(&1)})} value={@theme} />
+      <.select id={"#{@id}-mode"} name="mode" label="Mode" options={["dark", "light"]} value={@mode} />
     </form>
     """
   end
+
+  defp pushes?(%JS{ops: ops}), do: Enum.any?(ops, &match?(["push" | _], &1))
+  defp pushes?(_event_name), do: true
 
   # ---------------------------------------------------------- App shell
 
